@@ -1,7 +1,7 @@
 // Vérifie la cohérence des données (ids, couches, harmonie) — node tools/validate.js
 const fs = require('fs'), path = require('path'), vm = require('vm');
 global.window = global;
-for (const f of ['notes_extra', 'notes', 'scenes', 'destinations', 'prefs', 'art', 'engine']) vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8'), { filename: f });
+for (const f of ['notes_extra', 'notes', 'scenes', 'destinations', 'prefs', 'art', 'engine', 'quiz']) vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8'), { filename: f });
 const VS = global.VS; let bad = 0;
 console.log('notes:', VS.NOTE_LIST.length, 'lieux:', VS.SCENES.length);
 const seen = new Set(VS.NOTE_LIST.map(n => n.id));
@@ -53,6 +53,25 @@ VS.ALLERGENS.forEach(g => { g.ids.forEach(id => { if (!VS.NOTES[id]) { console.l
   console.log('exclusions :', ex.size, 'senteurs écartées |', swaps, 'remplacements sur les lieux | fuites :', leaks);
   if (leaks) bad++;
   VS.EXCL = new Set();
+}
+// quiz : 400 profils aléatoires -> formules neuves, cohérentes, sans note qui domine ni fuite d'exclusion
+{
+  const ex = new Set(VS.NOTE_LIST.filter(n => ['cr', 'co'].includes(n.f)).map(n => n.id)); VS.ALLERGENS.filter(g => g.id === 'lait').forEach(g => g.ids.forEach(i => ex.add(i)));
+  let leaks = 0, over = 0, low = 0, same = 0; const pickN = (a, n) => a.slice().sort(() => Math.random() - .5).slice(0, n);
+  for (const withEx of [false, true]) {
+    VS.EXCL = withEx ? ex : new Set();
+    for (let i = 0; i < 200; i++) {
+      const ans = {}; VS.QUIZ.forEach(q => { const ids = q.opts.map(o => o.id); ans[q.id] = q.type === 'multi' ? pickN(ids, 1 + Math.floor(Math.random() * q.max)) : pickN(ids, 1)[0]; });
+      const p = VS.Quiz.params(ans), c = VS.Engine.compose(Object.assign({ nameFn: p.nameFn }, p.opts));
+      if (c.ids.some(id => VS.EXCL.has(id))) leaks++;
+      if (Math.max(...c.notes.map(n => n.pct)) > 17) over++;
+      if (c.stats.harmony < 85) low++;
+      if (VS.SCENES.some(sc => sc.notes.join() === c.ids.join())) same++;
+    }
+  }
+  VS.EXCL = new Set();
+  console.log('quiz : fuites', leaks, '| note > 17 %', over, '| harmonie < 85', low, '| copie d\'un lieu', same);
+  if (leaks || over || low || same) bad++;
 }
 // sous-catégories
 VS.SCENES.forEach(x => { const subs = (VS.SUBS[x.cat] || []).map(y => y[0]); if (!x.sub || !subs.includes(x.sub)) { console.log('sous-catégorie manquante', x.id, x.cat, x.sub); bad++; } });

@@ -121,7 +121,7 @@
   function go(tab) {
     if (destOpen) closeDest(true);
     if (resultOpen) closeResult(true);
-    const order = ['home', 'places', 'create', 'coll'], dir = order.indexOf(tab) >= order.indexOf(state.tab) ? 1 : -1;
+    const order = ['home', 'places', 'create', 'quiz', 'coll'], dir = order.indexOf(tab) >= order.indexOf(state.tab) ? 1 : -1;
     const cur = $('.screen.active'), nxt = $('#s-' + tab);
     if (nxt && cur !== nxt) {
       if (cur) cur.style.setProperty('--tx', (-dir * 38) + 'px');                      // l'écran quitté glisse d'un côté…
@@ -133,6 +133,7 @@
     $$('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + tab));
     $$('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.go === tab));
     if (tab === 'coll') renderColl();
+    if (tab === 'quiz') renderQuiz();
     const sc = $('#s-' + tab + ' .scroll'); if (sc) sc.scrollTop = 0;
     Motion.resetScroll();
   }
@@ -372,11 +373,11 @@
       const c = coll.find(x => x.key === b.dataset.k); if (c) openResult(rebuild(c), false);
     }));
   }
-  function rebuild(c) { const comp = E.build(c.ids, { key: c.key, name: c.name, tag: c.tag, sceneId: c.sceneId, emoji: c.emoji, cat: c.cat, dirs: c.dirs, moods: c.moods, spec: c.spec }); comp.opts = c.opts; return comp; }
+  function rebuild(c) { const comp = E.build(c.ids, { extra: c.extra, key: c.key, name: c.name, tag: c.tag, sceneId: c.sceneId, emoji: c.emoji, cat: c.cat, dirs: c.dirs, moods: c.moods, spec: c.spec }); comp.opts = c.opts; return comp; }
   const isSaved = k => coll.some(c => c.key === k);
   function toggleSave(comp) {
     if (isSaved(comp.key)) { coll = coll.filter(c => c.key !== comp.key); toast('Retiré de ta collection'); }
-    else { coll.unshift({ key: comp.key, name: comp.name, tag: comp.tag, sceneId: comp.sceneId, emoji: comp.emoji, cat: comp.cat, dirs: comp.dirs, moods: comp.moods, ids: comp.ids, spec: comp.spec, opts: comp.opts || null, ts: Date.now() }); toast('Ajouté à ta collection 💜'); }
+    else { coll.unshift({ key: comp.key, name: comp.name, tag: comp.tag, sceneId: comp.sceneId, emoji: comp.emoji, cat: comp.cat, dirs: comp.dirs, moods: comp.moods, extra: comp.extra || [], ids: comp.ids, spec: comp.spec, opts: comp.opts || null, ts: Date.now() }); toast('Ajouté à ta collection 💜'); }
     store.set('vs.coll', coll); renderColl();
   }
   const shares = comp => { const s = comp.layerShare; return [s.T || 0, s.C || 0, s.F || 0]; };
@@ -481,7 +482,7 @@
     const st = comp.stats, maxP = Math.max.apply(null, comp.notes.map(n => n.pct));
     const catLabel = comp.cat && CAT[comp.cat] ? CAT[comp.cat].n : 'Création sur mesure';
     const tag = comp.tag || (comp.moods.length ? comp.moods.map(m => VS.MOODS.find(x => x[0] === m)[1].toLowerCase()).join(' · ') : 'Une composition rien que pour toi');
-    const tags = [].concat(comp.dirs.map(d => VS.DIRECTIONS.find(y => y[0] === d)[1]), comp.moods.map(m => VS.MOODS.find(y => y[0] === m)[1]));
+    const tags = [].concat(comp.extra || [], comp.dirs.map(d => VS.DIRECTIONS.find(y => y[0] === d)[1]), comp.moods.map(m => VS.MOODS.find(y => y[0] === m)[1]));
     const layers = ['T', 'C', 'F'].filter(l => comp.byLayer[l].length);
     const pyr = layers.map((L, i) => {
       const f1 = i / layers.length, f2 = (i + 1) / layers.length, c = comp.layerColor[L];
@@ -639,6 +640,74 @@
     if (!fromPop && history.state && history.state.d) { try { skipPop++; history.back(); } catch (e) { /* ignore */ } }
   }
 
+  /* ---------- quiz : 8 questions, un parfum sur mesure ---------- */
+  const QZ = { i: -1, ans: {}, busy: false, back: false };
+  const QCOL = ['#e6b67f', '#adb78f', '#efcbbb', '#d9a18d', '#d3a2b5', '#9fc4cf', '#e0c46f', '#b9a1d6'];
+  function quizCompose(ans) {
+    const p = VS.Quiz.params(ans), seed = Math.floor(Math.random() * 1e9);
+    const opts = Object.assign({}, p.opts, { seed, nameFn: p.nameFn, tag: p.tag, extra: p.extra });
+    const c = E.compose(opts);
+    const sp = Art.customSpec(c, p.opts.dirs[0], seed % 9999);      // palette tirée des senteurs, décor tiré des réponses
+    sp.id = 'q' + seed; sp.art = p.art; sp.n = c.name;
+    c.spec = sp; opts.spec = sp; c.opts = opts;
+    return c;
+  }
+  function quizIntro() {
+    const last = store.get('vs.quiz', null);
+    return `<div class="qz-body${QZ.back ? ' back' : ''}"><header class="page-h"><h2>Le quiz olfactif</h2><p>Huit questions, une minute : on compose pour toi un parfum sur mesure, avec sa formule, son histoire et sa destination.</p></header>` +
+      `<div class="qz-intro"><div class="qz-orb" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` +
+      `<ul class="qz-points"><li><b>8</b> questions courtes</li><li><b>1</b> minute</li><li><b>∞</b> parfums possibles</li></ul>` +
+      `<button class="btn primary big" data-q="start">Commencer le quiz</button></div>` +
+      (last ? `<div class="qz-last"><div><small>Ton dernier profil</small><b>${VS.Quiz.summary(last) || 'Profil enregistré'}</b></div><div class="qz-last-b"><button class="btn soft" data-q="again">Nouvelle version</button></div></div>` : '') + `</div>`;
+  }
+  function quizQuestion() {
+    const q = VS.QUIZ[QZ.i], n = VS.QUIZ.length, sel = [].concat(QZ.ans[q.id] || []);
+    const opts = q.opts.map((o, k) => `<button class="qo${sel.includes(o.id) ? ' on' : ''}" data-o="${o.id}" style="--oc:${QCOL[k % QCOL.length]};--k:${k}"><b>${o.label}</b><small>${o.sub || ''}</small></button>`).join('');
+    return `<div class="qz-body${QZ.back ? ' back' : ''}" data-q-id="${q.id}">` +
+      `<div class="qz-top"><button class="pill" data-q="prev">← ${QZ.i ? 'Précédent' : 'Accueil du quiz'}</button><span class="qz-count">Question ${QZ.i + 1} / ${n}</span></div>` +
+      `<div class="qz-bar"><i style="width:${QZ.i / n * 100}%" data-to="${(QZ.i + 1) / n * 100}"></i></div>` +
+      `<h2 class="qz-q">${q.q}</h2><p class="qz-sub">${q.sub}${q.type === 'multi' ? '' : ''}</p>` +
+      `<div class="qz-opts${q.opts.length === 3 ? ' three' : ''}">${opts}</div>` +
+      (q.type === 'multi' ? `<div class="qz-foot"><span class="qz-hint">${sel.length} / ${q.max}</span><button class="btn primary" data-q="next"${sel.length ? '' : ' disabled'}>${QZ.i === n - 1 ? 'Composer mon parfum' : 'Continuer'}</button></div>` : '') + `</div>`;
+  }
+  function renderQuiz() {
+    const box = $('#quizBox'); box.innerHTML = QZ.i < 0 ? quizIntro() : quizQuestion();
+    const bar = $('.qz-bar i', box); if (bar) requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = bar.dataset.to + '%'; }));
+    QZ.back = false; QZ.busy = false;
+  }
+  function quizSwap(back) {
+    const b = $('#quizBox .qz-body'); QZ.back = !!back; QZ.busy = true;
+    if (!b) { renderQuiz(); return; }
+    b.classList.add('out'); setTimeout(renderQuiz, reduce ? 0 : 430);
+  }
+  function quizNext() {
+    if (QZ.i >= VS.QUIZ.length - 1) {
+      const ans = QZ.ans; store.set('vs.quiz', ans);
+      const comp = quizCompose(ans); QZ.i = -1; QZ.ans = {}; renderQuiz(); run(comp);
+    } else { QZ.i++; quizSwap(false); }
+  }
+  $('#quizBox').addEventListener('click', e => {
+    if (QZ.busy) return;
+    const t = e.target.closest('[data-q],[data-o]'); if (!t) return;
+    if (t.dataset.q === 'start') { QZ.i = 0; QZ.ans = {}; vibrate(10); quizSwap(false); return; }
+    if (t.dataset.q === 'again') { vibrate(10); const a = store.get('vs.quiz', null); if (a) run(quizCompose(a)); return; }
+    if (t.dataset.q === 'prev') { vibrate(6); QZ.i--; quizSwap(true); return; }
+    if (t.dataset.q === 'next') { vibrate(10); quizNext(); return; }
+    const o = t.dataset.o; if (!o) return;
+    const q = VS.QUIZ[QZ.i]; vibrate(8);
+    if (q.type === 'multi') {
+      const cur = [].concat(QZ.ans[q.id] || []), i = cur.indexOf(o);
+      if (i >= 0) cur.splice(i, 1); else if (cur.length >= q.max) { toast(`${q.max} choix maximum`); return; } else cur.push(o);
+      QZ.ans[q.id] = cur;
+      $$('#quizBox .qo').forEach(b => b.classList.toggle('on', cur.includes(b.dataset.o)));
+      $('.qz-hint').textContent = cur.length + ' / ' + q.max; $('[data-q="next"]').disabled = !cur.length;
+    } else {
+      QZ.ans[q.id] = o; QZ.busy = true;
+      $$('#quizBox .qo').forEach(b => b.classList.toggle('on', b === t));
+      setTimeout(quizNext, reduce ? 0 : 620);                         // laisse le temps de voir son choix
+    }
+  });
+
   /* ---------- fiche d'une note ---------- */
   const ROLE = { T: 'Elle donne son éclat à l\'ouverture et accroche le nez dès les premières secondes, avant de s\'effacer doucement.', C: 'Elle construit le caractère du parfum : c\'est elle qu\'on reconnaît pendant la plus grande partie de la journée.', F: 'Elle ancre toute la formule et prolonge la trace sur la peau et les vêtements pendant des heures.' };
   function openSheet(id, comp) {
@@ -761,8 +830,8 @@
       if (e.target.matches && e.target.matches('input,textarea')) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === '/' && (state.tab === 'places' || state.tab === 'create') && !resultOpen && !destOpen && !prefsOpen) { e.preventDefault(); $(state.tab === 'create' ? '#noteSearch' : '#placeSearch').focus(); return; }
-      const n = ['1', '2', '3', '4'].indexOf(e.key);
-      if (n >= 0 && !resultOpen && !destOpen && !prefsOpen && $('#lab').hidden) go(['home', 'places', 'create', 'coll'][n]);
+      const n = ['1', '2', '3', '4', '5'].indexOf(e.key);
+      if (n >= 0 && !resultOpen && !destOpen && !prefsOpen && $('#lab').hidden) go(['home', 'places', 'create', 'quiz', 'coll'][n]);
     });
     // glisser à la souris dans les carrousels et rangées de puces
     let el = null, x0 = 0, s0 = 0, moved = 0;

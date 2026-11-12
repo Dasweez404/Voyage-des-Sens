@@ -9,7 +9,7 @@ Une seule appli, une seule adresse : la mise en page s'adapte toute seule à la 
 - **Téléphone** : barre d'onglets en bas, une colonne.
 - **Ordinateur** (détecté si la fenêtre fait ≥ 960 px, ou ≥ 720 px avec une souris) : barre latérale, grilles multi-colonnes, création en deux colonnes, résultat avec image fixe à gauche, fenêtre modale pour les senteurs, survols, glisser à la souris dans les carrousels.
 - Forçage : `?view=desktop`, `?view=mobile` ou `?view=auto` dans l'adresse, ou « Affichage » dans Préférences.
-- Clavier : `Échap` ferme la couche du dessus, `/` lance la recherche, `1` à `4` changent d'onglet.
+- Clavier : `Échap` ferme la couche du dessus, `/` lance la recherche, `1` à `5` changent d'onglet.
 
 ## Lancer
 
@@ -27,6 +27,7 @@ Sur téléphone : « Ajouter à l'écran d'accueil » pour l'installer (le servi
   fête foraine, cirque, ferme…), Voyage (marché oriental, volcan, jungle, pizzeria new-yorkaise…) et Souvenirs.
 - **549 senteurs** réparties en 18 familles (hespéridés, floraux, boisés, gourmands, marins, minéraux, boissons & sirops, confiseries…) : cola, grenadine, chips paprika, pop-corn, barbe à papa, violette, caramel, cuir….
 - **Sous-catégories** pour filtrer les lieux : 4 ou 5 par catégorie (Cocon & chaleur, Mers & îles, Goûters & douceurs…).
+- **Quiz olfactif** (onglet sous Créer) : 8 questions (moment, lieu, saison, envies, histoire, gourmandise, matières, présence). Le moteur compose une formule neuve, jamais copiée d'un lieu préfait, avec un nom, une phrase, un décor et une destination qui reflètent les réponses.
 - **Création sur mesure** : texte libre, directions (nostalgie, découverte, voyage, exotisme), 18 ambiances,
   senteurs au choix, richesse de la formule.
 - **70 destinations réelles** (Chamonix, Marrakech, Kyoto, Bora Bora, La Havane…) : chaque parfum reçoit la destination dont l'air lui ressemble le plus, avec un bouton « Découvrir ma destination » (affinité olfactive, itinéraire en trois moments, période, carte) et un bouton « Autre destination ».
@@ -56,6 +57,7 @@ node tools/audit.js scenes # relecture de toutes les formules
 | `js/prefs.js` | groupes d'allergies et d'intolérances |
 | `js/destinations.js` | 70 destinations, étapes olfactives, lieu → destination |
 | `js/art.js` | moteur d'illustrations SVG animées + flacon (aucune image externe) |
+| `js/quiz.js` | questions du quiz et traduction des réponses en paramètres |
 | `js/engine.js` | composition, statistiques, histoire, analyse du texte libre |
 | `js/app.js` | écrans, animation de création, résultat, collection |
 | `sw.js` | cache hors-ligne |

@@ -7,7 +7,7 @@
   const LAYER_SHARE = { T: .27, C: .38, F: .35 };
   const RANK_W = [1, .82, .68, .57, .48, .4];
   // notes très situationnelles : jamais proposées d'office dans une création sur mesure (seulement si tu les choisis)
-  const ODD = new Set(['alcool', 'desinfectant', 'essence', 'soufre', 'vernis', 'laque', 'peinture', 'plastique', 'metal', 'goudron', 'charbon', 'silex', 'asphalte', 'beton', 'caoutchouc', 'gomme', 'colle', 'lave']);
+  const ODD = new Set(['alcool', 'desinfectant', 'essence', 'soufre', 'vernis', 'laque', 'peinture', 'plastique', 'metal', 'goudron', 'charbon', 'silex', 'asphalte', 'beton', 'caoutchouc', 'gomme', 'colle', 'lave', 'etable', 'champlabour', 'vase', 'yaourt', 'adoucissant', 'geldouche', 'shampoingpomme', 'lingepropre', 'crememains', 'rougelevres', 'cahier', 'livreneuf']);
   const SAVORY = new Set(['kebab', 'hamburger', 'frites', 'bacon', 'saucisse', 'ail', 'oignonfrit', 'ketchup', 'moutarde', 'vinaigre', 'cornichon', 'grillade', 'poivrongrille', 'chipsoignon', 'chipsfromage', 'chipspoulet', 'chipsbbq', 'chipspaprika', 'chipsnature', 'chipsvinaigre', 'fromage', 'chevre', 'camembert', 'parmesan', 'nori', 'miso', 'soja', 'nouilles', 'bouillon', 'tomatecuite', 'patatefour', 'mais', 'barbecue', 'bretzel', 'cracker', 'mozzarella', 'vinaigreriz', 'wasabi', 'patepizza', 'friture']);
   const FIXATIVES = new Set(['bo', 'am', 'mu', 're', 'go', 'te', 'cr', 'co']);
 
@@ -111,7 +111,7 @@
       ids: all.map(n => n.id), notes: all, byLayer: out, layerShare, layerColor, families, accord,
       stats: { intensity, hours, sillage: sillageLabels[sillageIdx], sillageV: clamp(Math.round((intensity - 1) * 11), 8, 100), seasons, best, moment, harmony },
       spec: meta.spec || null,
-      swaps: meta.swaps || [], conflicts: ids.filter(id => VS.EXCL && VS.EXCL.has(id))
+      extra: meta.extra || [], swaps: meta.swaps || [], conflicts: ids.filter(id => VS.EXCL && VS.EXCL.has(id))
     };
     const r = Art.rngf(Art.hash(comp.name + ids.join()));
     comp.story = story(comp, r, meta);
@@ -199,6 +199,8 @@
     dirs.forEach(t => tw[t] = (tw[t] || 0) + 1.7);
     // les senteurs choisies "teintent" aussi l'ambiance
     picks.forEach(p => p.t.forEach(t => tw[t] = (tw[t] || 0) + .25));
+    Object.keys(o.tags || {}).forEach(t => { tw[t] = (tw[t] || 0) + o.tags[t]; });   // pondérations venues du quiz
+    const bias = o.fams || {}, avoidF = new Set(o.avoid || []);
 
     const chosen = { T: [], C: [], F: [] };
     picks.forEach(p => { if (!chosen[p.l].includes(p)) chosen[p.l].push(p); });
@@ -213,6 +215,8 @@
       all().forEach(c => { const p = VS.pairScore(n.f, c.f); coh += p; if (p < 0) bad++; });
       s += coh * .85 - bad * 2.6;
       picks.forEach(p => { s += VS.pairScore(n.f, p.f) * .9; });
+      if (ODD.has(n.id) && !picks.includes(n)) return -99;        // notes situationnelles : seulement si tu les demandes
+      s += (bias[n.f] || 0) * 1.15; if (avoidF.has(n.f)) s -= 4.5;
       if (!picks.includes(n)) { if (ODD.has(n.id)) s -= 3.2; if (SAVORY.has(n.id) && !wantSavory) s -= 2.4; }
       const same = chosen[layer].filter(c => c.f === n.f).length;
       s -= same * 1.6;
@@ -246,14 +250,17 @@
 
     // nom
     const all2 = build(ids, { dirs, moods });
-    // le nom s'appuie sur une senteur « nommable » (fleur, fruit, bois, ambre, musc…), pas sur une épice ou un ingrédient de cuisine
-    const NAMEW = { fl: 1, fr: 1, ag: .95, bo: 1, am: 1, re: .9, mu: .95, ve: .85, ma: .9, go: .75, co: .6, bv: .5, ar: .5, ep: .45, te: .45, cr: .5, cu: .3, mi: .3 };
-    const pool = [].concat(all2.byLayer.C, all2.byLayer.T).filter(n => !ODD.has(n.id) && !SAVORY.has(n.id));
-    const lead = (pool.length ? pool : [].concat(all2.byLayer.C, all2.byLayer.T)).sort((a, b) => b.pct * (NAMEW[b.f] || .5) - a.pct * (NAMEW[a.f] || .5))[0];
+    // le nom s'appuie sur une senteur « nommable » : emblématique, jamais un produit ménager ou une note de cuisine
+    const NAMEW = { fl: 1, fr: 1, ag: .95, bo: 1, am: 1, re: .9, mu: .8, ve: .85, ma: .9, go: .8, co: .6, bv: .5, ar: .55, ep: .55, te: .45, cr: .6, cu: .3, mi: .3 };
+    const NAMEBAD = new Set(['nuitete', 'adoucissant', 'lingepropre', 'geldouche', 'shampoingpomme', 'ecorce', 'boismort', 'pierremouillee', 'poussiere', 'crayon', 'cahier', 'livreneuf', 'vieuxlivres', 'rougelevres', 'crememains', 'savonlait', 'gomme', 'allumette', 'papier', 'cireparquet', 'lait', 'creme', 'beurre', 'brownie', 'cookie', 'whisky', 'cafeturc', 'ketchup']);
+    const ICON = new Set(['vanille', 'santal', 'cedre', 'rose', 'jasmin', 'ambre', 'bergamote', 'lavande', 'vetiver', 'encens', 'oud', 'iris', 'tubereuse', 'neroli', 'citron', 'musc', 'cuir', 'tiare', 'mimosa', 'pivoine', 'figue', 'pin', 'cypres', 'caramel', 'cannelle', 'safran', 'tonka', 'muguet', 'violette', 'orange', 'yuzu']);
+    const LB = { C: 1, F: .95, T: .85 };
+    const pool = all2.notes.filter(n => !ODD.has(n.id) && !SAVORY.has(n.id) && !NAMEBAD.has(n.id));
+    const lead = (pool.length ? pool : all2.notes).slice().sort((a, b) => b.pct * (NAMEW[b.f] || .5) * LB[b.l] * (ICON.has(b.id) ? 1.3 : 1) - a.pct * (NAMEW[a.f] || .5) * LB[a.l] * (ICON.has(a.id) ? 1.3 : 1))[0];
     const key = dirs[0] || moods[0] || 'rec';
     const pref = pick(PREFIX[key] || PREFIX.rec, r);
-    const name = o.name || (pref + ' ' + de(lead.n));
-    return build(ids, { name, dirs, moods, key: 'c' + seed, emoji: '✨', spec: o.spec });
+    const name = o.name || (o.nameFn ? o.nameFn(lead, all2) : pref + ' ' + de(lead.n));
+    return build(ids, { name, dirs, moods, key: 'c' + seed, emoji: '✨', spec: o.spec, tag: o.tag, extra: o.extra });
   }
 
   /* ---------- analyse d'un texte libre ---------- */
