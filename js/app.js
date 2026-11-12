@@ -149,6 +149,23 @@
     }
   });
 
+  // logos monochromes des quatre catégories (traits arrondis, tracés au chargement)
+  const LOGO = (() => {
+    const wrap = body => `<svg class="logo" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+    const P = d => `<path pathLength="1" d="${d}"/>`;
+    return {
+      // Intérieurs : une maison, sa fenêtre en arche et sa cheminée
+      int: wrap(P('M9 31 L32 11 L55 31') + P('M15 27 V53 H49 V27') + P('M25 53 V39 a7 7 0 0 1 14 0 V53') + P('M43 19 V11 H49 V24')),
+      // Particuliers : le chapiteau d'un cirque, symbole des fêtes, foires et lieux du quotidien
+      par: wrap(P('M32 7 V15') + P('M32 7 L42 10.5 L32 14') + P('M32 15 L7 35 H57 Z') + P('M12 35 V54 H52 V35') + P('M25 54 V46 a7 7 0 0 1 14 0 V54')),
+      // Voyage : un globe et ses méridiens
+      voy: wrap(`<circle pathLength="1" cx="32" cy="32" r="22"/><ellipse pathLength="1" cx="32" cy="32" rx="10" ry="22"/>` + P('M10 32 H54') + P('M14 20 Q32 25 50 20') + P('M14 44 Q32 39 50 44')),
+      // Souvenirs : une photo instantanée avec son soleil et sa colline
+      sou: wrap(`<rect pathLength="1" x="11" y="8" width="42" height="48" rx="5"/><rect pathLength="1" x="16" y="13" width="32" height="30" rx="2"/><circle pathLength="1" cx="27" cy="23" r="3.6"/>` + P('M16 43 L29 30 L36 38 L41 33 L48 43') + P('M23 50 H41'))
+    };
+  })();
+  const CAT_TEXT = { int: 'Chalet, bibliothèque, hôpital…', par: 'Station-service, cirque, ferme…', voy: 'Marchés, plages, volcans…', sou: 'Grenier, rentrée, Noël…' };
+
   /* ---------- accueil ---------- */
   function renderHome() {
     const picks = shuffle(VS.SCENES).slice(0, 10);
@@ -156,10 +173,11 @@
     lazyArt($('#homeCarousel'));
     const tc = { int: ['#f4dcbf', '#e6b67f'], par: ['#f6d6c9', '#d9a18d'], voy: ['#dfe5c8', '#adb78f'], sou: ['#ecd5dd', '#d3a2b5'] };
     const desc = { int: 'Chalet, bibliothèque, hôpital…', par: 'Station-service, cirque, ferme…', voy: 'Marchés, plages, volcans…', sou: 'Grenier, rentrée, Noël…' };
-    $('#catTiles').innerHTML = VS.CATS.map(c => `<button class="ctile" data-cat="${c.id}" style="--tb:${tc[c.id][0]};--tc:${tc[c.id][1]}"><b>${c.n}</b><small>${VS.SCENES.filter(s => s.cat === c.id).length} lieux · ${desc[c.id]}</small></button>`).join('');
+    $('#catTiles').innerHTML = VS.CATS.map(c => `<button class="ctile" data-cat="${c.id}" style="--tb:${tc[c.id][0]};--tc:${tc[c.id][1]}">${LOGO[c.id]}<b>${c.n}</b><small>${VS.SCENES.filter(s => s.cat === c.id).length} lieux · ${CAT_TEXT[c.id]}</small></button>`).join('');
     $$('#catTiles .ctile').forEach(b => b.addEventListener('click', () => { state.cat = b.dataset.cat; state.sub = 'all'; renderPlaces(); go('places'); }));
     $('#homeStats').innerHTML = `<div><b>${VS.NOTE_LIST.length}</b><span>senteurs</span></div><div><b>${VS.SCENES.length}</b><span>lieux</span></div><div><b>${Object.keys(FAM).length}</b><span>familles</span></div>`;
   }
+  $$('[data-sl]').forEach(b => b.addEventListener('click', () => { const c = $('#homeCarousel'); c.scrollBy({ left: +b.dataset.sl * Math.round(c.clientWidth * .8), behavior: 'smooth' }); vibrate(6); }));
   $('#btnSurprise').addEventListener('click', () => {
     vibrate(15);
     if (Math.random() < .5) { openScene(VS.SCENES[Math.floor(Math.random() * VS.SCENES.length)].id); return; }
