@@ -48,20 +48,105 @@
   }
   $('#blobs').innerHTML = blobsSVG(); $('#labBlobs').innerHTML = blobsSVG();
 
+  /* ---------- mouvement : révélations, parallaxe, ondes au toucher, mots qui montent ---------- */
+  const Motion = (function () {
+    const ios = new WeakMap(), app = $('#app');
+    function observerFor(root) {
+      if (ios.has(root)) return ios.get(root);
+      const io = new IntersectionObserver(es => {
+        let k = 0;
+        es.filter(e => e.isIntersecting).forEach(e => { e.target.style.setProperty('--d', (k++ * 120) + 'ms'); e.target.classList.add('in'); io.unobserve(e.target); });
+      }, { root, threshold: .06, rootMargin: '0px 0px -5% 0px' });
+      ios.set(root, io); return io;
+    }
+    function watchEls(container, els) {
+      const io = observerFor(container.closest('.scroll, .res-scroll') || null);
+      els.forEach(el => { el.classList.add('ar'); el.classList.remove('in'); io.observe(el); });
+    }
+    function watchScreens() {
+      $$('.screen .scroll').forEach(sc => watchEls(sc, Array.from(sc.children).filter(c => !c.classList.contains('pgrid') && !c.classList.contains('cgrid'))));
+    }
+    // rejoue les révélations d'un écran quand on y revient (sans fondu inverse visible)
+    function replay(screen) {
+      const sc = $('.scroll', screen); if (!sc) return;
+      const io = observerFor(sc);
+      $$('.ar', screen).forEach(el => { el.style.transition = 'none'; el.classList.remove('in'); void el.offsetWidth; el.style.transition = ''; io.observe(el); });
+    }
+    function splitWords(el) {
+      if (!el || el.dataset.sp) return; el.dataset.sp = '1'; let i = 0;
+      const walk = n => Array.from(n.childNodes).forEach(c => {
+        if (c.nodeType === 3) {
+          const f = document.createDocumentFragment();
+          c.textContent.split(/(\s+)/).forEach(t => { if (!t) return; if (/^\s+$/.test(t)) f.appendChild(document.createTextNode(' ')); else { const w = document.createElement('span'); w.className = 'w'; w.style.setProperty('--i', i++); w.textContent = t; f.appendChild(w); } });
+          c.replaceWith(f);
+        } else if (c.nodeType === 1 && !c.classList.contains('w')) walk(c);
+      });
+      walk(el);
+    }
+    function ripple(e) {
+      if (reduce) return;
+      const t = e.target.closest('.btn,.chip,.al,.dir,.pcard,.hcard,.ctile,.pill,.round,.excl-row,.seg button,.fam-h,.ncard,.ccard'); if (!t) return;
+      const r = t.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2.4;
+      const sp = document.createElement('span'); sp.className = 'rpl';
+      sp.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d / 2}px;top:${e.clientY - r.top - d / 2}px`;
+      t.appendChild(sp); setTimeout(() => sp.remove(), 1500);
+    }
+    document.addEventListener('pointerdown', ripple, { passive: true });
+    // parallaxe du décor + barre d'onglets qui se retire en descendant
+    let last = 0;
+    $$('.screen .scroll').forEach(sc => {
+      let tick = false;
+      sc.addEventListener('scroll', () => {
+        if (tick) return; tick = true;
+        requestAnimationFrame(() => {
+          const y = sc.scrollTop, dy = y - last; tick = false;
+          if (!sc.closest('.screen.active')) return;
+          app.style.setProperty('--sy', y); sc.style.setProperty('--sy', y);
+          if (y > 80 && dy > 12) app.classList.add('tbhide'); else if (dy < -12 || y < 50) app.classList.remove('tbhide');
+          last = y;
+        });
+      }, { passive: true });
+    });
+    function progress(wrap, sc) {
+      let p = wrap.querySelector('.prog');
+      if (!p) { p = document.createElement('div'); p.className = 'prog'; p.innerHTML = '<i></i>'; wrap.appendChild(p); }
+      if (sc._pf) sc.removeEventListener('scroll', sc._pf);
+      sc._pf = () => { const m = sc.scrollHeight - sc.clientHeight; p.style.setProperty('--p', m > 0 ? Math.min(1, sc.scrollTop / m).toFixed(3) : 0); };
+      sc.addEventListener('scroll', sc._pf, { passive: true }); sc._pf();
+    }
+    return { watchEls, watchScreens, replay, splitWords, progress, resetScroll() { last = 0; app.classList.remove('tbhide'); app.style.setProperty('--sy', 0); } };
+  })();
+
   /* ---------- navigation ---------- */
   function go(tab) {
     if (destOpen) closeDest(true);
     if (resultOpen) closeResult(true);
+    const order = ['home', 'places', 'create', 'coll'], dir = order.indexOf(tab) >= order.indexOf(state.tab) ? 1 : -1;
+    const cur = $('.screen.active'), nxt = $('#s-' + tab);
+    if (nxt && cur !== nxt) {
+      if (cur) cur.style.setProperty('--tx', (-dir * 38) + 'px');                      // l'écran quitté glisse d'un côté…
+      nxt.style.transition = 'none'; nxt.style.setProperty('--tx', (dir * 38) + 'px'); void nxt.offsetWidth; nxt.style.transition = '';   // …le nouveau arrive de l'autre
+      Motion.replay(nxt);
+    }
     state.tab = tab; $('#app').dataset.tab = tab;
-    $('#tabbar').style.setProperty('--i', ['home', 'places', 'create', 'coll'].indexOf(tab));
+    $('#tabbar').style.setProperty('--i', order.indexOf(tab));
     $$('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + tab));
     $$('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.go === tab));
     if (tab === 'coll') renderColl();
     const sc = $('#s-' + tab + ' .scroll'); if (sc) sc.scrollTop = 0;
+    Motion.resetScroll();
   }
   document.addEventListener('click', e => {
     const g = e.target.closest('[data-go]'); if (g) { vibrate(8); go(g.dataset.go); return; }
-    const s = e.target.closest('[data-sc]'); if (s) { vibrate(10); openScene(s.dataset.sc); }
+    const card = e.target.closest('[data-sc]');
+    if (card) {
+      const id = card.dataset.sc, grid = card.parentElement;
+      if (grid.classList.contains('dimmed')) return;
+      vibrate(10);
+      if (reduce) { openScene(id); return; }
+      card.classList.add('picked'); grid.classList.add('dimmed');            // la carte se soulève, les autres s'effacent
+      setTimeout(() => { grid.classList.remove('dimmed'); card.classList.remove('picked'); openScene(id); }, 560);
+    }
   });
 
   /* ---------- accueil ---------- */
@@ -101,7 +186,7 @@
     $('#placeCount').textContent = list.length + (list.length > 1 ? ' lieux' : ' lieu');
     const grid = $('#placeGrid');
     grid.innerHTML = list.length ? list.map((s, i) => `<button class="pcard" data-sc="${s.id}" style="--i:${Math.min(i, 14)}"><div class="pic"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span>${E.adaptIds(s.notes).swaps.length ? '<span class="adp">Adapté</span>' : ''}</div><b>${s.n}</b><span class="t">${s.tag}</span><span class="ns">${noteIcons(s, 5)}</span></button>`).join('') : `<div class="empty"><span class="shape"></span>Aucun lieu ne répond à « ${state.q} ».<br>Essaie de le décrire dans <b>Créer</b>.</div>`;
-    lazyArt(grid);
+    lazyArt(grid); Motion.watchEls(grid, $$('.pcard', grid));
   }
   $('#placeSearch').addEventListener('input', e => { state.q = e.target.value; renderPlaces(); });
 
@@ -222,12 +307,14 @@
     if (a.scene) bits.push('proche de « ' + a.scene.n + ' »');
     hint.textContent = bits.length ? '✓ Compris : ' + bits.join(' · ') : 'Je n\'ai pas tout saisi, mais je m\'en inspire — ajoute quelques envies ci-dessous.';
   }
+  let lastN = -1;
   function sync() {
     const n = state.dirs.size + state.moods.size + state.picks.length, hasT = state.text.trim().length > 2;
     if (typeof refreshSugg === 'function' && $('#sugg')) refreshSugg();
     $('#moodCount').textContent = state.moods.size ? state.moods.size + ' / 5' : 'jusqu\'à 5';
     $('#pickCount').textContent = state.picks.length ? state.picks.length + ' / 5' : 'jusqu\'à 5';
     $('#btnCreate').disabled = !(n || hasT);
+    if (n + (hasT ? 1 : 0) !== lastN) { lastN = n + (hasT ? 1 : 0); const ci = $('#cbInfo'); ci.classList.remove('bump'); void ci.offsetWidth; ci.classList.add('bump'); }
     $('#cbInfo').innerHTML = n || hasT
       ? `<b>${n + (hasT ? 1 : 0)}</b> envie${n + (hasT ? 1 : 0) > 1 ? 's' : ''} · ${state.dirs.size} direction${state.dirs.size > 1 ? 's' : ''}, ${state.moods.size} ambiance${state.moods.size > 1 ? 's' : ''}, ${state.picks.length} senteur${state.picks.length > 1 ? 's' : ''}`
       : 'Choisis au moins une envie';
@@ -260,6 +347,7 @@
       const comp = rebuild(c);
       return `<button class="ccard" data-k="${c.key}" style="animation-delay:${i * 60}ms"><div class="th">${Art.scene(comp.spec, { static: true })}<span class="bt">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</span></div><div><b>${comp.name}</b><div class="ac">${comp.accord}</div>${comp.conflicts && comp.conflicts.length ? '<div class="warnb">Contient une senteur que tu évites</div>' : ''}<div class="nn">${comp.notes.slice(0, 5).map(n => n.e + ' ' + n.n).join(' · ')}</div></div><span class="del" data-del="${c.key}" aria-label="Supprimer">✕</span></button>`;
     }).join('');
+    Motion.watchEls(grid, $$('.ccard', grid));
     $$('.ccard', grid).forEach(b => b.addEventListener('click', e => {
       const del = e.target.closest('[data-del]');
       if (del) { e.stopPropagation(); coll = coll.filter(x => x.key !== del.dataset.del); store.set('vs.coll', coll); renderColl(); toast('Parfum retiré de ta collection'); return; }
@@ -408,6 +496,7 @@
     const wrap = $('#result'), sc = $('#resScroll');
     wrap.hidden = false; wrap.setAttribute('aria-hidden', 'false');
     sc.innerHTML = resultHTML(comp); sc.scrollTop = 0;
+    $$('.sec>h2', sc).forEach(Motion.splitWords); Motion.progress(wrap, sc);
     sc.classList.toggle('reveal', !!reveal);
     $('#resBar').innerHTML = `<button class="btn soft${isSaved(comp.key) ? ' on' : ''}" id="rSave">${isSaved(comp.key) ? 'Gardé' : 'Garder'}</button><button class="btn primary" id="rDest">Découvrir ma destination</button>`;
     lazyArt(sc);
@@ -507,6 +596,7 @@
   function renderDest(reveal) {
     const sc = $('#destScroll'), d = destList[destIdx].d;
     sc.innerHTML = destHTML(destComp, destList, destIdx); sc.scrollTop = 0;
+    $$('.sec>h2', sc).forEach(Motion.splitWords); Motion.progress($('#dest'), sc);
     sc.classList.toggle('reveal', !!reveal);
     $('#destBar').innerHTML = `<button class="btn soft" id="dNext">Autre destination</button><a class="btn primary" id="dMap" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${d.lat}&mlon=${d.lon}#map=8/${d.lat}/${d.lon}">Voir sur la carte</a>`;
     lazyArt(sc);
@@ -602,6 +692,7 @@
   function openPrefs() {
     const w = $('#prefs'), sc = $('#prefsScroll');
     sc.innerHTML = prefsHTML(); sc.scrollTop = 0; refreshPrefs();
+    Motion.watchEls(sc, $$('.pf-lead, .pf-sum, .pf-sec>h2, .al, .pf-sec h4', sc));
     sc.onclick = e => {
       const al = e.target.closest('[data-al]'), pf = e.target.closest('[data-pf]'), pn = e.target.closest('[data-pn]'), pd = e.target.closest('[data-pd]');
       if (al) { togglePref(prefs.allergies, al.dataset.al); al.classList.toggle('on', prefs.allergies.includes(al.dataset.al)); }
@@ -638,6 +729,7 @@
 
   /* ---------- init ---------- */
   applyPrefs(); renderHome(); renderPlaces(); renderCreate(); sync();
+  $$('.hero h1, .page-h h2, .block h2').forEach(Motion.splitWords); Motion.watchScreens();
   $('#collBadge').hidden = !coll.length; $('#collBadge').textContent = coll.length;
   splash();
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
