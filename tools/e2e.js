@@ -101,6 +101,21 @@ let BASE;
   ok(await p.evaluate(() => !document.documentElement.classList.contains('eo')), 'retour au mode parfum');
   await eo.close();
 
+  console.log('Flacon 3D');
+  const t3 = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  p = await t3.newPage(); watch(p);
+  await p.goto(BASE + '/index.html'); await p.waitForTimeout(3300);
+  await p.click('#btnPrefs'); await p.waitForTimeout(1200);
+  ok(!!(await p.$('#botSeg [data-b=true]')), 'réglage « Flacon » dans les préférences');
+  await p.click('#botSeg [data-b=true]'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => localStorage.getItem('vs.b3d') === 'true'), 'le flacon 3D est mémorisé');
+  await p.click('#pfBack'); await p.waitForTimeout(900);
+  await p.click('#tabbar [data-go=places]'); await p.waitForTimeout(1400); await p.click('#s-places [data-sc]'); await p.waitForTimeout(1200); await p.click('#labSkip');
+  await p.waitForSelector('#result.show', { timeout: 15000 }); await p.waitForTimeout(2200);
+  ok(!!(await p.$('.res-bottle .b3d')), 'la page résultat affiche le flacon 3D');
+  ok(await p.$eval('.res-bottle .lq-F', e => e.getBoundingClientRect().height > 5), 'les couches de liquide ont une hauteur');
+  await t3.close();
+
   console.log('Allergies');
   const al = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   p = await al.newPage(); watch(p);
