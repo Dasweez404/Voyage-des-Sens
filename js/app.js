@@ -111,9 +111,7 @@
     $$('#dirGrid .dir').forEach(b => b.addEventListener('click', () => { toggleSet(state.dirs, b.dataset.d, 2); b.classList.toggle('on', state.dirs.has(b.dataset.d)); vibrate(8); sync(); }));
     $('#moodChips').innerHTML = VS.MOODS.map(m => `<button class="chip" data-m="${m[0]}">${m[1]}</button>`).join('');
     $$('#moodChips .chip').forEach(b => b.addEventListener('click', () => { toggleSet(state.moods, b.dataset.m, 5); b.classList.toggle('on', state.moods.has(b.dataset.m)); vibrate(8); sync(); }));
-    $('#famChips').innerHTML = `<button class="chip on" data-f="all">Toutes</button>` + Object.keys(FAM).map(f => `<button class="chip" data-f="${f}"><span class="dot" style="--fc:${FAM[f].c}"></span>${FAM[f].n}</button>`).join('');
-    $$('#famChips .chip').forEach(b => b.addEventListener('click', () => { state.fam = b.dataset.f; $$('#famChips .chip').forEach(x => x.classList.toggle('on', x === b)); renderNotes(); }));
-    renderNotes();
+    renderNotePicker();
     $$('#richSeg button').forEach(b => b.addEventListener('click', () => { state.rich = +b.dataset.r; $$('#richSeg button').forEach(x => x.classList.toggle('on', x === b)); vibrate(8); }));
   }
   function toggleSet(set, v, max) {
@@ -121,20 +119,92 @@
     else if (set.size >= max) toast(`${max} choix maximum — retire-en un d'abord`);
     else set.add(v);
   }
+  /* ---------- sélecteur de senteurs : pyramide, suggestions, univers, familles repliables ---------- */
+  const MACROS = [
+    ['fl', 'Fleurs', ['fl']], ['fr', 'Fruits & agrumes', ['fr', 'ag']], ['go', 'Gourmandises', ['go', 'co']], ['bv', 'Boissons & sirops', ['bv']],
+    ['cu', 'Salé & snacks', ['cu']], ['ep', 'Épices & herbes', ['ep', 'ar', 've']], ['bo', 'Bois & résines', ['bo', 're', 'am']],
+    ['ma', 'Mer & minéral', ['ma', 'mi']], ['te', 'Terre & fumée', ['te', 'cr']], ['mu', 'Propre & poudré', ['mu']]
+  ];
+  const ICONIC = ['vanille', 'rose', 'bergamote', 'cedre', 'cuir', 'caramel', 'popcorn', 'violette', 'jasmin', 'ambre', 'citron', 'cannelle'];
+  const chipHTML = (n, on) => `<button class="chip note${on ? ' on' : ''}" data-n="${n.id}" style="--fc:${FAM[n.f].c}">${n.e} ${n.n}</button>`;
+  const byName = (a, b) => a.n.localeCompare(b.n, 'fr');
+  state.macro = 'all'; state.layer = 'all'; state.open = new Set();
+
+  function renderNotePicker() {
+    const cnt = ids => VS.NOTE_LIST.filter(n => ids.includes(n.f)).length;
+    $('#macroChips').innerHTML = [['all', 'Tout', Object.keys(FAM)]].concat(MACROS).map(m => `<button class="chip${state.macro === m[0] ? ' on' : ''}" data-m="${m[0]}"><span class="dot" style="--fc:${FAM[m[2][0]].c}"></span>${m[1]} <em>${cnt(m[2])}</em></button>`).join('');
+    $$('#macroChips .chip').forEach(b => b.addEventListener('click', () => {
+      state.macro = b.dataset.m; state.open = new Set(); vibrate(8);
+      $$('#macroChips .chip').forEach(x => x.classList.toggle('on', x === b)); renderNotes();
+    }));
+    $$('#layerSeg button').forEach(b => b.addEventListener('click', () => {
+      state.layer = b.dataset.l; vibrate(8); $$('#layerSeg button').forEach(x => x.classList.toggle('on', x === b)); renderNotes();
+    }));
+    const step = $('#noteStep');
+    step.addEventListener('click', e => {
+      const h = e.target.closest('.fam-h');
+      if (h) { const sec = h.parentElement, f = sec.dataset.f; sec.classList.toggle('open'); sec.classList.contains('open') ? state.open.add(f) : state.open.delete(f); vibrate(6); return; }
+      const x = e.target.closest('[data-x]'); if (x) { togglePick(x.dataset.x); return; }
+      const c = e.target.closest('.chip[data-n]'); if (c) togglePick(c.dataset.n);
+    });
+    renderNotes(); refreshTray(); refreshSugg();
+  }
+  function togglePick(id) {
+    const i = state.picks.indexOf(id);
+    if (i >= 0) state.picks.splice(i, 1);
+    else if (state.picks.length >= 5) { toast('5 senteurs maximum : retire-en une d\'abord'); return; }
+    else state.picks.push(id);
+    vibrate(8);
+    $$('#noteStep .chip[data-n="' + id + '"]').forEach(b => b.classList.toggle('on', state.picks.includes(id)));
+    refreshTray(); refreshBadges(); sync();
+  }
+  function refreshBadges() {
+    $$('#noteList .fam').forEach(sec => {
+      const k = state.picks.filter(id => NOTES[id].f === sec.dataset.f).length, b = $('.selb', sec);
+      b.hidden = !k; b.textContent = k;
+    });
+  }
+  function refreshTray() {
+    const rows = ['T', 'C', 'F'].map(L => {
+      const ids = state.picks.filter(id => NOTES[id].l === L);
+      return `<div class="tr"><span class="tl">${VS.LAYERS[L].short}</span><div class="tc">${ids.length ? ids.map(id => `<button class="chip note on" data-x="${id}" style="--fc:${FAM[NOTES[id].f].c}">${NOTES[id].e} ${NOTES[id].n} <u>×</u></button>`).join('') : '<span class="ph">à choisir</span>'}</div></div>`;
+    }).join('');
+    $('#tray').innerHTML = `<div class="tray-h">Ta pyramide <b>${state.picks.length} / 5</b></div>${rows}`;
+  }
+  function refreshSugg() {
+    const q = state.nq.trim();
+    $('#suggBox').hidden = !!q;
+    if (q) return;
+    const tw = {}; state.moods.forEach(t => tw[t] = (tw[t] || 0) + 1); state.dirs.forEach(t => tw[t] = (tw[t] || 0) + 1.7);
+    const picks = state.picks.map(id => NOTES[id]);
+    let list, label;
+    if (state.moods.size || state.dirs.size || picks.length) {
+      label = 'Suggestions pour toi';
+      list = VS.NOTE_LIST.filter(n => !state.picks.includes(n.id)).map(n => {
+        let sc = n.t.reduce((a, t) => a + (tw[t] || 0), 0);
+        picks.forEach(p => { sc += VS.pairScore(n.f, p.f) * 1.1; });
+        return { n, sc: sc + (ICONIC.includes(n.id) ? .4 : 0) };
+      }).sort((a, b) => b.sc - a.sc).slice(0, 12).map(x => x.n);
+    } else { label = 'Pour commencer'; list = ICONIC.map(id => NOTES[id]); }
+    $('#suggL').textContent = label;
+    $('#sugg').innerHTML = list.map(n => chipHTML(n, state.picks.includes(n.id))).join('');
+  }
   function renderNotes() {
     const q = strip(state.nq.trim());
-    const list = VS.NOTE_LIST.filter(n => (state.fam === 'all' || n.f === state.fam) && (!q || strip(n.n + ' ' + n.d).includes(q))).sort((a, b) => a.n.localeCompare(b.n, 'fr'));
-    const box = $('#noteChips');
-    box.innerHTML = list.map(n => `<button class="chip note${state.picks.includes(n.id) ? ' on' : ''}" data-n="${n.id}" style="--fc:${FAM[n.f].c}">${n.e} ${n.n}</button>`).join('') || '<div class="empty" style="padding:20px">Aucune senteur trouvée.</div>';
-    $$('.chip', box).forEach(b => b.addEventListener('click', () => {
-      const id = b.dataset.n, i = state.picks.indexOf(id);
-      if (i >= 0) state.picks.splice(i, 1);
-      else if (state.picks.length >= 5) { toast('5 senteurs maximum'); return; }
-      else state.picks.push(id);
-      b.classList.toggle('on', state.picks.includes(id)); vibrate(8); sync();
-    }));
+    const fams = state.macro === 'all' ? Object.keys(FAM) : MACROS.find(m => m[0] === state.macro)[2];
+    let html = '';
+    fams.forEach(f => {
+      const ns = VS.NOTE_LIST.filter(n => n.f === f && (state.layer === 'all' || q || n.l === state.layer) && (!q || strip(n.n + ' ' + n.d).includes(q)));
+      if (!ns.length) return;
+      const open = !!q || state.open.has(f) || (state.macro !== 'all' && fams.length <= 3);
+      const sel = state.picks.filter(id => NOTES[id].f === f).length;
+      const body = ['T', 'C', 'F'].map(L => ({ L, l: ns.filter(n => n.l === L).sort(byName) })).filter(g => g.l.length)
+        .map(g => (state.layer === 'all' ? `<h6>${VS.LAYERS[g.L].n} · ${g.l.length}</h6>` : '') + `<div class="chips wrap">${g.l.map(n => chipHTML(n, state.picks.includes(n.id))).join('')}</div>`).join('');
+      html += `<section class="fam${open ? ' open' : ''}" data-f="${f}" style="--fc:${FAM[f].c}"><button class="fam-h"><i class="dot"></i><b>${FAM[f].n}</b><em>${ns.length}</em><span class="prev">${ns.slice(0, 5).map(n => n.e).join('')}</span><span class="selb"${sel ? '' : ' hidden'}>${sel}</span><i class="chev"></i></button><div class="fam-b"><div class="fam-in">${body}</div></div></section>`;
+    });
+    $('#noteList').innerHTML = html || '<div class="empty" style="padding:24px">Aucune senteur trouvée.<br>Essaie un autre mot ou un autre univers.</div>';
   }
-  $('#noteSearch').addEventListener('input', e => { state.nq = e.target.value; renderNotes(); });
+  $('#noteSearch').addEventListener('input', e => { state.nq = e.target.value; renderNotes(); refreshSugg(); });
   let textT;
   $('#freeText').addEventListener('input', e => {
     state.text = e.target.value; clearTimeout(textT); textT = setTimeout(analyze, 350); sync();
@@ -151,6 +221,7 @@
   }
   function sync() {
     const n = state.dirs.size + state.moods.size + state.picks.length, hasT = state.text.trim().length > 2;
+    if (typeof refreshSugg === 'function' && $('#sugg')) refreshSugg();
     $('#moodCount').textContent = state.moods.size ? state.moods.size + ' / 5' : 'jusqu\'à 5';
     $('#pickCount').textContent = state.picks.length ? state.picks.length + ' / 5' : 'jusqu\'à 5';
     $('#btnCreate').disabled = !(n || hasT);

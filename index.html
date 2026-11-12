@@ -92,9 +92,20 @@
 
         <section class="step">
           <h3><b>4</b> Des senteurs <small id="pickCount">jusqu'à 5</small></h3>
-          <label class="search"><span></span><input id="noteSearch" type="search" placeholder="vanille, rose, cèdre, pop-corn…" autocomplete="off"></label>
-          <div class="chips scrollx" id="famChips"></div>
-          <div class="chips wrap notes" id="noteChips"></div>
+          <div id="noteStep">
+            <div class="tray" id="tray"></div>
+            <label class="search"><span></span><input id="noteSearch" type="search" placeholder="vanille, rose, cèdre, pop-corn…" autocomplete="off"></label>
+            <div id="suggBox"><div class="sugg-l" id="suggL"></div><div class="chips scrollx" id="sugg"></div></div>
+            <div class="sugg-l">Explorer par univers</div>
+            <div class="chips scrollx" id="macroChips"></div>
+            <div class="seg four" id="layerSeg">
+              <button data-l="all" class="on">Toutes</button>
+              <button data-l="T">Tête</button>
+              <button data-l="C">Cœur</button>
+              <button data-l="F">Fond</button>
+            </div>
+            <div id="noteList"></div>
+          </div>
         </section>
 
         <section class="step">
