@@ -1,6 +1,18 @@
 /* Voyage des Sens — interface */
 (function () {
   'use strict';
+  const BUILD = '2611121033';
+  // page et scripts de versions différentes (cache) : on repart d'un état propre, une seule fois
+  (function guard() {
+    const meta = document.querySelector('meta[name="vs-build"]');
+    if (!meta || meta.content === BUILD || BUILD === 'dev') return;
+    try {
+      if (sessionStorage.getItem('vs.reloaded') === BUILD) return;
+      sessionStorage.setItem('vs.reloaded', BUILD);
+      const sw = navigator.serviceWorker ? navigator.serviceWorker.getRegistrations().then(rs => Promise.all(rs.map(r => r.unregister()))) : Promise.resolve();
+      sw.then(() => window.caches ? caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))) : null).then(() => location.reload(), () => location.reload());
+    } catch (e) { /* ignore */ }
+  })();
   const VS = window.VS, E = VS.Engine, Art = VS.Art, NOTES = VS.NOTES, FAM = VS.FAMILIES;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -129,7 +141,7 @@
       Motion.replay(nxt);
     }
     state.tab = tab; $('#app').dataset.tab = tab;
-    $('#tabbar').style.setProperty('--i', order.indexOf(tab));
+    $('#tabbar').style.setProperty('--i', Math.max(0, order.indexOf(tab)));
     $$('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + tab));
     $$('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.go === tab));
     if (tab === 'coll') renderColl();

@@ -11,6 +11,10 @@ Une seule appli, une seule adresse : la mise en page s'adapte toute seule à la 
 - Forçage : `?view=desktop`, `?view=mobile` ou `?view=auto` dans l'adresse, ou « Affichage » dans Préférences.
 - Clavier : `Échap` ferme la couche du dessus, `/` lance la recherche, `1` à `5` changent d'onglet.
 
+## Versions et cache
+
+Après chaque modification, lancer `node tools/stamp.js` : il numérote tous les fichiers (`?v=…`) et le cache hors-ligne, pour qu'un navigateur ne mélange jamais une page récente avec d'anciens scripts. Le service worker interroge toujours le réseau en priorité (revalidation forcée) et ne sert le cache que hors-ligne.
+
 ## Lancer
 
 Aucune dépendance, aucun build. Servir le dossier en HTTP puis ouvrir `index.html` sur mobile :
