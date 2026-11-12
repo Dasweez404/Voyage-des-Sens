@@ -124,6 +124,18 @@ h1,h2,h3,p{margin:0}
 .search span{display:block;width:14px;height:14px;border-radius:50%;border:3px solid var(--rose);position:relative;flex:none}
 .search span::after{content:"";position:absolute;width:3px;height:8px;background:var(--rose);border-radius:2px;right:-6px;bottom:-9px;transform:rotate(-45deg)}
 
+/* ---------- sous-catégories ---------- */
+.subrow{display:grid;grid-template-rows:0fr;transition:grid-template-rows .6s var(--ease)}
+.subrow.open{grid-template-rows:1fr}
+.subin{overflow:hidden;min-height:0}
+.chips.sub{padding-top:10px;padding-bottom:2px}
+.chip.sm{padding:8px 13px;font-size:13px;background:var(--paper2);box-shadow:none;color:var(--ink2)}
+.chip.sm.on{background:var(--ink);color:var(--cream);box-shadow:none}
+.chip.sm em{font-style:normal;opacity:.6;font-weight:500;margin-left:2px}
+.subrow.open .chip.sm{animation:subIn .6s var(--spring) both;animation-delay:calc(var(--k,0) * 45ms)}
+@keyframes subIn{from{opacity:0;transform:translateY(-10px) scale(.9)}}
+.count{margin:8px 2px 14px;font-size:13px;color:var(--mut);font-weight:600}
+
 /* ---------- grille des lieux ---------- */
 .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .pcard{padding:8px 8px 13px;border-radius:var(--r);background:var(--paper);text-align:left;opacity:0;transform:translateY(22px);animation:cardIn .7s var(--ease) forwards;animation-delay:calc(var(--i,0) * 45ms);transition:transform .3s var(--spring)}

@@ -18,6 +18,7 @@ Sur téléphone : « Ajouter à l'écran d'accueil » pour l'installer (le servi
 - **111 lieux préfaits** : Intérieurs (chalet, bibliothèque, hôpital, gare, école…), Particuliers (station-service,
   fête foraine, cirque, ferme…), Voyage (marché oriental, volcan, jungle, pizzeria new-yorkaise…) et Souvenirs.
 - **549 senteurs** réparties en 18 familles (hespéridés, floraux, boisés, gourmands, marins, minéraux, boissons & sirops, confiseries…) : cola, grenadine, chips paprika, pop-corn, barbe à papa, violette, caramel, cuir….
+- **Sous-catégories** pour filtrer les lieux : 4 ou 5 par catégorie (Cocon & chaleur, Mers & îles, Goûters & douceurs…).
 - **Création sur mesure** : texte libre, directions (nostalgie, découverte, voyage, exotisme), 18 ambiances,
   senteurs au choix, richesse de la formule.
 - **70 destinations réelles** (Chamonix, Marrakech, Kyoto, Bora Bora, La Havane…) : chaque parfum reçoit la destination dont l'air lui ressemble le plus, avec un bouton « Découvrir ma destination » (affinité olfactive, itinéraire en trois moments, période, carte) et un bouton « Autre destination ».

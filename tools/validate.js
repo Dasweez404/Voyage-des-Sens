@@ -39,6 +39,9 @@ for (let i = 0; i < 300; i++) {
 }
 console.log('harmonie min (300 créations):', min);
 console.log(VS.Engine.compose({ moods: ['cha', 'rec'], dirs: ['nos'] }).story);
+// sous-catégories
+VS.SCENES.forEach(x => { const subs = (VS.SUBS[x.cat] || []).map(y => y[0]); if (!x.sub || !subs.includes(x.sub)) { console.log('sous-catégorie manquante', x.id, x.cat, x.sub); bad++; } });
+Object.keys(VS.SUBS).forEach(c => VS.SUBS[c].forEach(y => y[2].split(' ').forEach(id => { const sc = VS.SCENES.find(z => z.id === id); if (!sc) { console.log('sous-cat : lieu inconnu', id); bad++; } else if (sc.cat !== c) { console.log('sous-cat : mauvaise catégorie', id); bad++; } })));
 // destinations
 const sc = new Set(VS.SCENES.map(x => x.id)), tg = new Set(VS.MOODS.concat(VS.DIRECTIONS).map(m => m[0]));
 VS.DESTS.forEach(d => {

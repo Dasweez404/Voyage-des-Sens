@@ -135,7 +135,42 @@ plageenfance|sou|Plage de mon enfance|🪣|Château de sable, glace vanille et c
     });
   });
 
+
+  // sous-catégories (filtres) : id, libellé, lieux
+  const SUBS = {
+    int: [
+      ['cocon', 'Cocon & chaleur', 'chalet hotel cabanepluie sauna'],
+      ['culture', 'Culture & spectacle', 'bibliotheque ecole cinema eglise jazz musee opera'],
+      ['bienetre', 'Bien-être & soins', 'hopital hammam barbier spa pharmacie'],
+      ['saveurs', 'Saveurs & gourmandises', 'boulangerie cavevin patisserie'],
+      ['ateliers', 'Ateliers & passages', 'gare menuisier atelier serre']
+    ],
+    par: [
+      ['fetes', 'Fêtes & loisirs', 'fetefornaine cirque stade piscine patinoire arcade cinemaplein'],
+      ['campagne', 'Campagne & plein air', 'ferme potager verger feudecamp camping peche piquenique parcpluie'],
+      ['ville', 'Ville & quotidien', 'stationessence laverie brocante garage fleuriste marchedimanche marchenoel'],
+      ['apero', 'Saveurs & apéro', 'barbecue vignoble diner apero boulodrome']
+    ],
+    voy: [
+      ['mer', 'Mers & îles', 'plagetropicale bordmer riviera ilegrecque polynesie mojitobar mekong'],
+      ['froid', 'Montagne & grand froid', 'montagne ski fjord patagonie laponie cabanesucre'],
+      ['sauvage', 'Nature sauvage', 'foretprofonde volcan jungle savane desert erables'],
+      ['villes', 'Villes & saveurs du monde', 'marcheoriental asiatique cafeitalien pizzeria tokyo istanbul naples havane riad salondethe creperie glacier'],
+      ['jardins', 'Jardins & fleurs', 'prairie provence jardinzen kyotoautomne bali marchefleurs tournesols roseraie cerisiers']
+    ],
+    sou: [
+      ['maison', 'Maison & famille', 'cuisinemamie grenier chambreenfant armoire noelautrefois petitdej'],
+      ['ecole', 'École & jeux', 'rentree recre kermesse manege bonbons'],
+      ['etes', 'Étés & saisons', 'colonie plageenfance route bal orage premierenege gouter'],
+      ['douceurs', 'Goûters & douceurs', 'gouter2 barsirops chocolatchaud']
+    ]
+  };
+  const SUB_OF = {};
+  Object.keys(SUBS).forEach(c => SUBS[c].forEach(x => x[2].split(' ').forEach(id => { SUB_OF[id] = x[0]; })));
+  SCENES.forEach(sc => { sc.sub = SUB_OF[sc.id] || null; });
+
   G.VS = G.VS || {};
   G.VS.CATS = CATS;
+  G.VS.SUBS = SUBS;
   G.VS.SCENES = SCENES;
 })(typeof window !== 'undefined' ? window : globalThis);

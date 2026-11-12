@@ -17,7 +17,7 @@
   const CAT = {}; VS.CATS.forEach(c => CAT[c.id] = c);
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const state = { tab: 'home', cat: 'all', q: '', dirs: new Set(), moods: new Set(), picks: [], fam: 'all', nq: '', rich: 1, text: '' };
+  const state = { tab: 'home', cat: 'all', q: '', dirs: new Set(), moods: new Set(), picks: [], sub: 'all', fam: 'all', nq: '', rich: 1, text: '' };
   let coll = store.get('vs.coll', []);
   let current = null;          // composition affichée
   let resultOpen = false;
@@ -72,7 +72,7 @@
     const tc = { int: ['#f4dcbf', '#e6b67f'], par: ['#f6d6c9', '#d9a18d'], voy: ['#dfe5c8', '#adb78f'], sou: ['#ecd5dd', '#d3a2b5'] };
     const desc = { int: 'Chalet, bibliothèque, hôpital…', par: 'Station-service, cirque, ferme…', voy: 'Marchés, plages, volcans…', sou: 'Grenier, rentrée, Noël…' };
     $('#catTiles').innerHTML = VS.CATS.map(c => `<button class="ctile" data-cat="${c.id}" style="--tb:${tc[c.id][0]};--tc:${tc[c.id][1]}"><b>${c.n}</b><small>${VS.SCENES.filter(s => s.cat === c.id).length} lieux · ${desc[c.id]}</small></button>`).join('');
-    $$('#catTiles .ctile').forEach(b => b.addEventListener('click', () => { state.cat = b.dataset.cat; renderPlaces(); go('places'); }));
+    $$('#catTiles .ctile').forEach(b => b.addEventListener('click', () => { state.cat = b.dataset.cat; state.sub = 'all'; renderPlaces(); go('places'); }));
     $('#homeStats').innerHTML = `<div><b>${VS.NOTE_LIST.length}</b><span>senteurs</span></div><div><b>${VS.SCENES.length}</b><span>lieux</span></div><div><b>${Object.keys(FAM).length}</b><span>familles</span></div>`;
   }
   $('#btnSurprise').addEventListener('click', () => {
@@ -86,9 +86,19 @@
   /* ---------- lieux ---------- */
   function renderPlaces() {
     $('#catChips').innerHTML = [{ id: 'all', n: 'Tous' }].concat(VS.CATS).map(c => `<button class="chip${state.cat === c.id ? ' on' : ''}" data-c="${c.id}">${c.n}</button>`).join('');
-    $$('#catChips .chip').forEach(b => b.addEventListener('click', () => { state.cat = b.dataset.c; renderPlaces(); }));
+    $$('#catChips .chip').forEach(b => b.addEventListener('click', () => { state.cat = b.dataset.c; state.sub = 'all'; renderPlaces(); }));
+    // sous-catégories de la catégorie choisie
+    const row = $('#subRow'), subs = state.cat === 'all' ? [] : VS.SUBS[state.cat];
+    row.classList.toggle('open', subs.length > 0);
+    if (subs.length) {
+      const n = id => VS.SCENES.filter(s => s.cat === state.cat && s.sub === id).length;
+      $('#subChips').innerHTML = [['all', 'Toutes', VS.SCENES.filter(s => s.cat === state.cat).length]].concat(subs.map(x => [x[0], x[1], n(x[0])]))
+        .map((x, i) => `<button class="chip sm${state.sub === x[0] ? ' on' : ''}" data-s="${x[0]}" style="--k:${i}">${x[1]} <em>${x[2]}</em></button>`).join('');
+      $$('#subChips .chip').forEach(b => b.addEventListener('click', () => { state.sub = b.dataset.s; vibrate(8); renderPlaces(); }));
+    }
     const q = strip(state.q.trim());
-    const list = VS.SCENES.filter(s => (state.cat === 'all' || s.cat === state.cat) && (!q || strip(s.n + ' ' + s.tag + ' ' + s.notes.map(id => NOTES[id].n).join(' ')).includes(q)));
+    const list = VS.SCENES.filter(s => (state.cat === 'all' || s.cat === state.cat) && (state.sub === 'all' || s.sub === state.sub) && (!q || strip(s.n + ' ' + s.tag + ' ' + s.notes.map(id => NOTES[id].n).join(' ')).includes(q)));
+    $('#placeCount').textContent = list.length + (list.length > 1 ? ' lieux' : ' lieu');
     const grid = $('#placeGrid');
     grid.innerHTML = list.length ? list.map((s, i) => `<button class="pcard" data-sc="${s.id}" style="--i:${Math.min(i, 14)}"><div class="pic"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span></div><b>${s.n}</b><span class="t">${s.tag}</span><span class="ns">${noteIcons(s, 5)}</span></button>`).join('') : `<div class="empty"><span class="shape"></span>Aucun lieu ne répond à « ${state.q} ».<br>Essaie de le décrire dans <b>Créer</b>.</div>`;
     lazyArt(grid);
