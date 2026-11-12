@@ -340,7 +340,8 @@ textarea::placeholder{color:#c0a191}
 .donut circle.seg{fill:none;stroke-width:17;stroke-dasharray:0 300;transition:stroke-dasharray 1.6s var(--ease) var(--d,0s)}
 .in .donut circle.seg{stroke-dasharray:var(--len) 300}
 .donut .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
-.donut .mid b{font-family:var(--serif);font-size:20px;line-height:1.05}
+.donut .mid{padding:0 30px}
+.donut .mid b{font-family:var(--serif);font-size:20px;line-height:1.08;max-width:86px;margin:0 auto;overflow-wrap:break-word}
 .donut .mid small{color:var(--mut);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
 .leg{display:grid;gap:8px}
 .leg div{display:flex;align-items:center;gap:9px;font-size:13.5px}
