@@ -115,6 +115,10 @@ console.log('destinations différentes sur 300 créations:', dd.size);
   console.log('huiles essentielles :', VS.EO.size, 'notes | remplacées par lieu en moyenne', Math.round(totSw / VS.SCENES.length * 100) + ' %, maximum', Math.round(worst * 100) + ' % | harmonie < 70 :', low);
   VS.EXCL = new Set();
 }
+
+// contraste : aucun motif ne doit se confondre avec ce qui est derrière lui (un niveau de clarté d'écart au moins)
+{ let v = 0, sc = 0; VS.SCENES.forEach(x => { const st = {}; VS.Art.scene({ id: x.id, pal: x.pal, art: x.art }, { stats: st }); if (st.viol) { v += st.viol; sc++; } });
+  console.log('illustrations : motifs encore proches du fond', v, 'dans', sc, 'lieux'); if (v > 30) { console.log('trop de motifs confondus avec le fond'); bad++; } }
 console.log(JSON.stringify(VS.Engine.analyzeText('un chalet en hiver, doux et un peu de vanille').scene && VS.Engine.analyzeText('un chalet en hiver, doux et un peu de vanille').scene.id));
 console.log(bad ? 'ERREURS: ' + bad : 'OK');
 process.exit(bad ? 1 : 0);

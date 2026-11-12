@@ -170,22 +170,43 @@
   const KEEP = new Set(['#fff1c2', '#fff4d6', '#fff1c2', '#ff7a1a', '#ffc83d', '#fff3b0', '#ff8a2a', '#ff5a1a', '#e8c15a', '#ffe27a', '#fff6c8']);
   const LV = [.14, .3, .46, .62, .78, .92];
   const snapL = l => LV.reduce((b, v) => Math.abs(v - l) < Math.abs(b - l) ? v : b, LV[0]);
-  function analogize(svg, pal, keep) {
+  // fabrique du « mappeur » : même teinte dominante, trois teintes voisines, deux saturations, six niveaux de clarté
+  function makeMapper(pal, keep) {
     const P = pal.map(toHsl);
     const chroma = c => c.s * (1 - Math.abs(2 * c.l - 1));          // vraie intensité de couleur (ni blanc ni noir)
     // le sol et les murs (couleur sombre) pèsent un peu plus que le ciel : un chalet reste brun, une nuit reste bleue
     const base = [[P[0], 1], [P[1], 1], [P[3], 1.25]].sort((a, b) => chroma(b[0]) * b[1] - chroma(a[0]) * a[1])[0][0];
     const H0 = chroma(base) < .08 ? P[2].h : base.h;
-    return svg.replace(/#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g, m => {
+    const full = m => m.length === 4 ? '#' + m.slice(1).split('').map(x => x + x).join('') : m;
+    const lvIdx = l => LV.indexOf(snapL(l));
+    // info d'une couleur d'origine : null si elle reste telle quelle (lumière, noir, blanc)
+    const info = m => {
       const lm = m.toLowerCase();
-      if (KEEP.has(lm) || (keep && keep.has(lm))) return m;            // lumière : soleil, lune, flammes, lampes
-      const c = toHsl(m.length === 4 ? '#' + m.slice(1).split('').map(x => x + x).join('') : m);
-      if (c.s < .1) return c.l > .1 && c.l < .9 ? fromHsl(H0, .14, snapL(c.l)) : m;   // neutres teintés
+      if (KEEP.has(lm) || (keep && keep.has(lm))) return null;
+      const c = toHsl(full(m));
+      if (c.s < .1) return c.l > .1 && c.l < .9 ? { l: c.l, i: lvIdx(c.l), h: H0, s: .14 } : null;
       const off = Math.max(-28, Math.min(28, wrapD(c.h - H0) * .2));
-      const hue = H0 + Math.round(off / 24) * 24;                      // trois teintes voisines : H0-24, H0, H0+24
-      return fromHsl(hue, c.s < .4 ? .42 : .72, snapL(c.l));           // deux niveaux de saturation
-    });
+      return { l: c.l, i: lvIdx(c.l), h: H0 + Math.round(off / 24) * 24, s: c.s < .4 ? .42 : .72 };
+    };
+    const at = (m, i) => { const k = info(m); return k ? fromHsl(k.h, k.s, LV[Math.max(0, Math.min(5, i))]) : m; };
+    return { info, at, map: (m, d) => { const k = info(m); return k ? at(m, k.i + (d || 0)) : m; } };
   }
+  const HEX = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
+  // décalage de clarté d'un motif (d) + séparation interne : deux couleurs d'origine nettement différentes ne fusionnent pas
+  function planGroup(M, svg, d) {
+    const cnt = {}; (svg.match(HEX) || []).forEach(m => { const k = m.toLowerCase(); if (M.info(k)) cnt[k] = (cnt[k] || 0) + 1; });
+    const cols = Object.keys(cnt).map(k => ({ k, o: M.info(k).l, i: Math.max(0, Math.min(5, M.info(k).i + d)), n: cnt[k] })).sort((a, b) => a.o - b.o);
+    for (let j = 1; j < cols.length; j++) if (cols[j].o - cols[j - 1].o >= .08 && cols[j].i <= cols[j - 1].i) cols[j].i = cols[j - 1].i + 1;
+    for (let j = cols.length - 1; j >= 0; j--) if (cols[j].i > 5) { cols[j].i = 5; if (j && cols[j].o - cols[j - 1].o >= .08 && cols[j - 1].i >= 5) cols[j - 1].i = 4; }
+    for (let j = cols.length - 2; j >= 0; j--) if (cols[j + 1].o - cols[j].o >= .08 && cols[j].i >= cols[j + 1].i) cols[j].i = Math.max(0, cols[j + 1].i - 1);
+    const dom = cols.slice().sort((a, b) => b.n - a.n)[0];
+    return { cols, domL: dom ? LV[dom.i] : null };
+  }
+  const applyPlan = (M, svg, plan) => { const m = {}; plan.cols.forEach(c => { m[c.k] = M.at(c.k, c.i); }); return svg.replace(HEX, x => m[x.toLowerCase()] || M.map(x, 0)); };
+  const EFFECT = new Set(['rays', 'mist', 'steam', 'snow', 'rain', 'fireflies', 'stars', 'bulbs', 'neon', 'sun', 'moon', 'fire', 'lamp', 'lantern', 'lanterns']);
+  const BACK = new Set(['mtn', 'mtnsnow', 'hills', 'waves', 'dune', 'vines', 'rice', 'grass', 'pool', 'ground', 'win', 'shelf', 'board', 'screen', 'arch', 'church', 'dome', 'barn', 'awning', 'fireplace', 'tent', 'chalet', 'pagoda', 'lighthouse', 'volcano', 'skyline', 'carousel', 'wheel', 'planks']);
+  const spanOf = g => g.name === 'ground' ? [g.y, g.y + 220 * g.s] : BAND.has(g.name) ? [g.y - 70 * g.s, g.y + 250 * g.s] : [g.y - 170 * g.s, g.y + 10];
+  const MARGIN = .15;     // écart de clarté minimal avec ce qui se trouve derrière (un niveau)
 
   /* ---------- rendu d'une scène ---------- */
   function resolve(X, k) {
@@ -200,7 +221,8 @@
     const pal = spec.pal;
     const X = { pal, a: pal[0], b: pal[1], c: pal[2], d: pal[3], u, r: rngf(hash(spec.id || 'x')), gl: mix(pal[1], '#ffffff', .3) };
     X.lc = fromHsl(toHsl(pal[2]).h, .85, .72);   // couleur des sources de lumière
-    let body = '';
+    const M2 = makeMapper(pal, new Set([X.lc.toLowerCase()]));
+    const groups = [];
     (spec.art || '').split(';').forEach(tok => {
       if (!tok) return;
       const i = tok.indexOf(':'), name = tok.slice(0, i), a = tok.slice(i + 1).split(',');
@@ -209,12 +231,31 @@
       const col = resolve(X, a[3]);
       const t = a[4];
       const tr = BAND.has(name) ? `translate(${x} ${y}) scale(1 ${s})` : `translate(${x} ${y}) scale(${s})`;
-      body += `<g transform="${tr}">${fn(X, col, t)}</g>`;
+      groups.push({ name, x, y, s, svg: `<g transform="${tr}">${fn(X, col, t)}</g>` });
     });
     const sky = [0, .5, 1].map(t => mix(pal[0], pal[1], t));
+    const skyL = sky.map(c => toHsl(M2.map(c, 0)).l);
+    const bgAt = (y0, y1) => { const r = []; if (y0 < 175) r.push(skyL[0]); if (y1 > 130 && y0 < 335) r.push(skyL[1]); if (y1 > 265) r.push(skyL[2]); return r; };
+    // chaque motif est éclairci ou assombri d'un ou deux niveaux s'il se confond avec ce qui est derrière lui (ciel, sol, murs)
+    const back = []; let viol = 0, body = '';
+    groups.forEach(g => {
+      if (EFFECT.has(g.name)) { body += applyPlan(M2, g.svg, planGroup(M2, g.svg, 0)); return; }
+      const [y0, y1] = spanOf(g);
+      const Ls = bgAt(y0, y1).concat(back.filter(b => b.y1 > y0 && b.y0 < y1).map(b => b.L));
+      let best = null;
+      [0, 1, -1, 2, -2].forEach(d => {
+        if (best && best.mg >= MARGIN) return;
+        const pl = planGroup(M2, g.svg, d), mg = pl.domL == null || !Ls.length ? 9 : Math.min.apply(null, Ls.map(l => Math.abs(l - pl.domL)));
+        if (!best || mg > best.mg + 1e-6) best = { pl, mg };
+      });
+      if (best.mg < MARGIN - 1e-6) viol++;
+      body += applyPlan(M2, g.svg, best.pl);
+      if (BACK.has(g.name) && best.pl.domL != null) back.push({ y0, y1, L: best.pl.domL });
+    });
+    if (o.stats) o.stats.viol = viol;
     const band = (y, c, i) => `<g class="dr" style="animation-duration:${22 + i * 6}s;animation-delay:-${i * 5}s"><path d="M-70,${y} C60,${y - 34} 190,${y + 30} 300,${y - 6} S430,${y - 20} 480,${y} V520 H-70Z" fill="${c}"/></g>`;
-    return `<svg xmlns="http://www.w3.org/2000/svg" class="art${o.static ? ' static' : ''}" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${(spec.n || 'Illustration').replace(/"/g, '')}">` +
-      analogize(`<rect width="400" height="500" fill="${sky[0]}"/>${band(170, sky[1], 0)}${band(300, sky[2], 1)}${body}</svg>`, pal, new Set([X.lc.toLowerCase()]));
+    const bgSvg = `<rect width="400" height="500" fill="${M2.map(sky[0], 0)}"/>${band(170, M2.map(sky[1], 0), 0)}${band(300, M2.map(sky[2], 0), 1)}`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="art${o.static ? ' static' : ''}" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${(spec.n || 'Illustration').replace(/"/g, '')}">` + bgSvg + body + '</svg>';
   }
 
   /* ---------- flacon de parfum ---------- */
