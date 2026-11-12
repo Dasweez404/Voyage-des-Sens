@@ -821,3 +821,29 @@ html.eo{--terra:#6b7a35;--terra2:#515e27;--sand:#d9c98a;--blush:#dfe0bd;--rose:#
 .eo-note p{margin:0}
 .ccard.eo-c::after{content:'💧';position:absolute;top:10px;left:10px;font-size:15px;filter:drop-shadow(0 1px 0 rgba(255,255,255,.6))}
 @media (prefers-reduced-motion:reduce){.dr-row .dots i{animation:none;transform:none}}
+
+/* ---------- interrupteur au-dessus de Préférences ---------- */
+.hero-tools{position:relative;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:16px}
+.hero .hero-tools .prefs-pill{position:static}
+.hero .fmt-slot{margin:0}
+.hero .fmt-hint{display:none}
+.side-fmt{display:none}
+html.desktop .screen .fmt-slot,html.desktop .hero-tools{display:none}
+html.desktop #tabbar .side-fmt{display:block;margin:auto 0 0}
+html.desktop #tabbar .side-fmt .fmt-hint{display:none}
+html.desktop #tabbar .side-fmt .fmt-switch{display:flex;flex-direction:column;width:100%;border-radius:22px}
+html.desktop #tabbar .side-fmt .fmt-switch button{justify-content:center;min-height:38px;padding:0 8px;font-size:13px}
+html.desktop #tabbar .side-prefs{margin:8px 0 0}
+
+/* ---------- mouvement au défilement : doux, lent, jamais brusque ---------- */
+.pcard,.hcard,.ccard,.ctile{translate:0 var(--dr,0);transition:translate .9s var(--calm)}
+.pcard .pic .art-w,.hcard .pic .art-w,.ccard .th>svg,.ctile>svg{scale:1.1;translate:0 var(--pi,0);transition:translate 1.1s var(--calm)}
+.pcard .pic,.hcard .pic{overflow:hidden}
+.hero h1{translate:0 calc(var(--sy,0) * .05px)}
+.hero .lead{translate:0 calc(var(--sy,0) * .05px)}
+.hero .brand,.hero .hero-tools{translate:0 calc(var(--sy,0) * .04px)}
+.page-h h2{translate:0 calc(var(--sy,0) * .06px)}
+.page-h p{translate:0 calc(var(--sy,0) * .04px)}
+.res-bottle{translate:0 calc(var(--rs,0) * -.12px);scale:calc(1 - var(--rs,0) / 3200)}
+.res-title{translate:0 calc(var(--rs,0) * .05px)}
+@media (prefers-reduced-motion:reduce){.pcard,.hcard,.ccard,.ctile,.hero h1,.hero .lead,.hero .brand,.hero .hero-tools,.page-h h2,.page-h p,.res-bottle,.res-title{translate:none;scale:none}.pcard .pic .art-w,.hcard .pic .art-w{scale:none;translate:none}}

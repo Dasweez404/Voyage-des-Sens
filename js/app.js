@@ -1,7 +1,7 @@
 /* Voyage des Sens — interface */
 (function () {
   'use strict';
-  const BUILD = '2611121138';
+  const BUILD = '2611121144';
   // page et scripts de versions différentes (cache) : on repart d'un état propre, une seule fois
   (function guard() {
     const meta = document.querySelector('meta[name="vs-build"]');
@@ -107,6 +107,22 @@
     }
     document.addEventListener('pointerdown', ripple, { passive: true });
     // parallaxe du décor + barre d'onglets qui se retire en descendant
+    // les cartes flottent très doucement selon leur position à l'écran (décalage entre colonnes, image qui glisse dans son cadre)
+    const DRIFT = '.pcard,.hcard,.ccard,.ctile';
+    function drift(sc) {
+      if (reduce) return;
+      const H = sc.clientHeight, top = sc.getBoundingClientRect().top, rows = [];
+      $$(DRIFT, sc).forEach((el, i) => {
+        const r = el.getBoundingClientRect(), y = r.top - top;
+        if (y > H + 160 || y + r.height < -160) return;
+        rows.push([el, ((y + r.height / 2) / H - .5), i]);
+      });
+      rows.forEach(([el, p, i]) => {
+        const k = i % 2 ? 1 : .55;
+        el.style.setProperty('--dr', (p * -16 * k).toFixed(1) + 'px');
+        el.style.setProperty('--pi', (p * -10).toFixed(1) + 'px');
+      });
+    }
     let last = 0;
     $$('.screen .scroll').forEach(sc => {
       let tick = false;
@@ -116,6 +132,7 @@
           const y = sc.scrollTop, dy = y - last; tick = false;
           if (!sc.closest('.screen.active')) return;
           app.style.setProperty('--sy', y); sc.style.setProperty('--sy', y);
+          drift(sc);
           if (y > 80 && dy > 12) app.classList.add('tbhide'); else if (dy < -12 || y < 50) app.classList.remove('tbhide');
           last = y;
         });
@@ -125,7 +142,7 @@
       let p = wrap.querySelector('.prog');
       if (!p) { p = document.createElement('div'); p.className = 'prog'; p.innerHTML = '<i></i>'; wrap.appendChild(p); }
       if (sc._pf) sc.removeEventListener('scroll', sc._pf);
-      sc._pf = () => { const m = sc.scrollHeight - sc.clientHeight; p.style.setProperty('--p', m > 0 ? Math.min(1, sc.scrollTop / m).toFixed(3) : 0); };
+      sc._pf = () => { const m = sc.scrollHeight - sc.clientHeight; p.style.setProperty('--p', m > 0 ? Math.min(1, sc.scrollTop / m).toFixed(3) : 0); wrap.style.setProperty('--rs', Math.min(sc.scrollTop, 900)); };
       sc.addEventListener('scroll', sc._pf, { passive: true }); sc._pf();
     }
     return { watchEls, watchScreens, replay, splitWords, progress, resetScroll() { last = 0; app.classList.remove('tbhide'); app.style.setProperty('--sy', 0); } };
