@@ -1,7 +1,7 @@
 /* Voyage des Sens — interface */
 (function () {
   'use strict';
-  const BUILD = '2611121418';
+  const BUILD = '2611121437';
   // page et scripts de versions différentes (cache) : on repart d'un état propre, une seule fois
   (function guard() {
     const meta = document.querySelector('meta[name="vs-build"]');
@@ -428,17 +428,7 @@
   /* ---------- laboratoire (animation de création) ---------- */
   let labAbort = null;
   const FLASK = 'M82,20 H118 V84 C168,98 186,142 176,184 C168,226 136,246 100,246 C64,246 32,226 24,184 C14,142 32,98 82,84Z';
-  function flaskSVG(cols) {
-    const y = { T: 100, C: 146, F: 192 };
-    const wave = yy => `<g class="wavy"><path d="M-100,${yy} q25,-9 50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 V300 H-100Z"/></g>`;
-    const liq = L => `<g class="liq" id="ly${L}" style="--h:${300 - y[L]}px" fill="${cols[L]}">${wave(y[L])}</g>`;
-    return `<svg viewBox="0 0 200 260" aria-hidden="true"><defs><clipPath id="lfc"><path d="${FLASK}"/></clipPath></defs>` +
-      `<ellipse cx="100" cy="254" rx="62" ry="6" fill="#6a331f" opacity=".16"/>` +
-      `<g class="flask"><path d="${FLASK}" fill="#fff" fill-opacity=".62"/><g clip-path="url(#lfc)">${liq('T')}${liq('C')}${liq('F')}</g>` +
-      `<path d="${FLASK}" fill="none" stroke="#6a331f" stroke-opacity=".55" stroke-width="3" stroke-linejoin="round"/>` +
-      `<path d="M44,150 C40,176 52,206 70,222" stroke="#fff" stroke-opacity=".75" stroke-width="6" stroke-linecap="round" fill="none"/>` +
-      `<rect x="76" y="6" width="48" height="18" rx="5" fill="#d6a95a"/><rect x="76" y="16" width="48" height="8" rx="4" fill="#a97d34"/></g></svg>`;
-  }
+  const flaskSVG = comp => Art.flask({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) });
   async function runLab(comp) {
     const lab = $('#lab'), stage = $('#labStage'), wipe = $('#labWipe');
     let aborted = false; labAbort = () => { aborted = true; };
@@ -446,7 +436,7 @@
     lab.style.setProperty('--lb0', pastel(comp.layerColor.C, .84)); lab.style.setProperty('--lb1', pastel(comp.layerColor.C, .7));
     lab.style.setProperty('--lb2', pastel(comp.layerColor.F, .6)); lab.style.setProperty('--lb3', pastel(comp.layerColor.T, .68));
     $('#labTitle').textContent = comp.name;
-    stage.className = 'lab-stage'; stage.innerHTML = flaskSVG(comp.layerColor);
+    stage.className = 'lab-stage'; stage.innerHTML = flaskSVG(comp);
     wipe.className = 'wipe';
     $$('.lab-dots i', lab).forEach(d => d.classList.remove('on'));
     $$('.fly,.ringp', lab).forEach(n => n.remove());
@@ -467,30 +457,40 @@
       const ns = comp.byLayer[L]; if (!ns.length) continue;
       phase(labels[L][0], ns.map(n => n.n.toLowerCase()).join(' · ')); dot(li + 1);
       const sr = stage.getBoundingClientRect(), lr = lab.getBoundingClientRect();
-      const tx = sr.left - lr.left + sr.width / 2, ty = sr.top - lr.top + sr.height * .08;
+      const tx = sr.left - lr.left + sr.width / 2, ty = sr.top - lr.top + sr.height * .06;
+      const dropEl = $('#ly' + L).closest('svg').querySelector('.flask');
+      let risen = false;
       const flights = ns.map((n, i) => new Promise(res => {
         const el = document.createElement('div'); el.className = 'fly'; el.innerHTML = `${n.e}<span>${n.n}</span>`;
         el.style.opacity = '0'; lab.appendChild(el);
         const w = el.offsetWidth / 2, h = el.offsetHeight / 2;
-        const side = i % 2 ? 1 : -1, sx = tx + side * rnd(lr.width * .2, lr.width * .38), sy = rnd(lr.height * .22, lr.height * .62);
+        const side = i % 2 ? 1 : -1, sx = tx + side * rnd(lr.width * .18, lr.width * .34), sy = rnd(lr.height * .2, lr.height * .5);
         setTimeout(() => {
           if (aborted) { el.remove(); return res(); }
           const a = el.animate([
-            { transform: `translate(${sx - w}px,${sy - h + 30}px) scale(.6)`, opacity: 0 },
-            { transform: `translate(${sx - w}px,${sy - h}px) scale(1)`, opacity: 1, offset: .3 },
-            { transform: `translate(${tx - w}px,${ty - h}px) scale(.4)`, opacity: 0 }
-          ], { duration: 1000, easing: 'cubic-bezier(.5,0,.2,1)', fill: 'forwards' });
-          a.onfinish = () => { el.remove(); res(); }; vibrate(6);
-        }, i * 260 * quick);
+            { transform: `translate(${sx - w}px,${sy - h + 24}px) scale(.8)`, opacity: 0 },
+            { transform: `translate(${sx - w}px,${sy - h}px) scale(1)`, opacity: 1, offset: .32 },
+            { transform: `translate(${(sx + tx) / 2 - w}px,${(sy + ty) / 2 - h - 26}px) scale(.8)`, opacity: .9, offset: .7 },
+            { transform: `translate(${tx - w}px,${ty - h}px) scale(.35)`, opacity: 0 }
+          ], { duration: 1200, easing: 'cubic-bezier(.45,.05,.25,1)', fill: 'forwards' });
+          a.onfinish = () => {
+            el.remove();
+            if (!aborted) {                                   // une goutte de la couleur de la couche tombe dans le flacon
+              if (!risen) { risen = true; $('#ly' + L).classList.add('in'); stage.classList.add('has-' + L); }
+              const svg = stage.querySelector('svg'), dp = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+              dp.setAttribute('class', 'drp'); dp.setAttribute('cx', 100); dp.setAttribute('cy', 66); dp.setAttribute('r', 3.4); dp.setAttribute('fill', comp.layerColor[L]);
+              dp.style.setProperty('--fall', (parseFloat($('#rp' + L).getAttribute('cy')) - 66 + 4) + 'px');
+              svg.appendChild(dp); setTimeout(() => { dp.remove(); const rp = $('#rp' + L); rp.classList.remove('go'); void rp.getBBox(); rp.classList.add('go'); }, 620);
+            }
+            res();
+          }; vibrate(6);
+        }, i * 280 * quick);
       }));
       await Promise.all(flights);
       if (aborted) break;
-      const ring = document.createElement('i'); ring.className = 'ringp'; ring.style.setProperty('--c', comp.layerColor[L]);
-      ring.style.setProperty('--ry', (ty / lr.height * 100) + '%'); lab.appendChild(ring); setTimeout(() => ring.remove(), 1500);
-      $('#ly' + L).classList.add('in');
-      await wait(1100 * quick);
+      await wait(800 * quick);
     }
-    if (!aborted) { stage.classList.add('shake'); phase('Macération', 'Les notes s\'apprivoisent'); dot(3); vibrate([10, 30, 10]); await wait(1400 * quick); }
+    if (!aborted) { phase('Mise en flacon', 'Le bouchon se referme, les notes s\'apprivoisent'); dot(3); stage.classList.add('closed'); vibrate([10, 30, 10]); await wait(2300 * quick); }
     $$('.liq', stage).forEach(l => l.classList.add('in'));
     wipe.classList.add('go');
     await sleep(aborted ? 450 : 950);

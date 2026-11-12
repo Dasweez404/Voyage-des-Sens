@@ -259,26 +259,45 @@
   }
 
   /* ---------- flacon de parfum ---------- */
-  function bottle(o) {
-    const u = 'b' + (++UID);
+  // flacon élégant : verre épais, col doré, bouchon ; version fixe (résultat, collection) ou animée (laboratoire)
+  function perfume(o) {
+    const u = 'p' + (++UID), lab = !!o.lab;
     const cols = o.cols || ['#f6c945', '#e88fb8', '#8a5a3b'];
-    const sh = o.shares || [.25, .35, .4];
-    const y0 = 206, H = 112, level = .82, liqH = H * level;
-    const hB = liqH * sh[2], hC = liqH * sh[1], hT = liqH * sh[0];
-    const yB = y0 - hB, yC = yB - hC, yT = yC - hT;
-    const gold = '#d6a95a';
-    const wave = y => `<path d="M-30,${y} q10,-4 20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 V${y + 12} H-30Z"/>`;
-    return `<svg xmlns="http://www.w3.org/2000/svg" class="bottle" viewBox="0 0 140 230" aria-hidden="true"><defs><clipPath id="${u}c"><rect x="28" y="92" width="84" height="114" rx="13"/></clipPath></defs>` +
-      `<ellipse cx="70" cy="222" rx="50" ry="6" fill="#6a331f" opacity=".16"/>` +
-      `<rect x="22" y="84" width="96" height="128" rx="18" fill="#fff" fill-opacity=".6" stroke="#6a331f" stroke-opacity=".35" stroke-width="2"/>` +
-      `<g clip-path="url(#${u}c)"><rect x="20" y="${yB}" width="100" height="${hB + 4}" fill="${cols[2]}"/><rect x="20" y="${yC}" width="100" height="${hC + .5}" fill="${cols[1]}"/><rect x="20" y="${yT}" width="100" height="${hT + .5}" fill="${cols[0]}"/>` +
-      `<g class="wv2" fill="${cols[0]}">${wave(yT - 3)}</g></g>` +
-      `<rect x="31" y="96" width="7" height="100" rx="3.5" fill="#fff" opacity=".45"/>` +
-      `<rect x="44" y="132" width="52" height="40" rx="6" fill="#fdf5ee"/><text x="70" y="153" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#6a331f" letter-spacing="2">VS</text><text x="70" y="165" text-anchor="middle" font-family="system-ui,sans-serif" font-size="5.5" fill="#a47b67" letter-spacing="1.4">VOYAGE DES SENS</text>` +
-      `<rect x="54" y="62" width="32" height="26" rx="4" fill="#fff" fill-opacity=".6" stroke="#6a331f" stroke-opacity=".3"/>` +
-      `<rect x="48" y="56" width="44" height="10" rx="3" fill="${gold}"/><rect x="48" y="62" width="44" height="4" rx="2" fill="#a97d34"/>` +
-      `<rect x="44" y="14" width="52" height="44" rx="9" fill="${gold}"/><rect x="44" y="46" width="52" height="12" rx="6" fill="#a97d34"/><rect x="49" y="19" width="7" height="30" rx="3.5" fill="#f3d9a0"/></svg>`;
+    const sh = o.shares || [.25, .35, .4];                       // [tête, cœur, fond]
+    const bot = 234, H = 112, liqH = H * (lab ? 1 : .84);
+    const hF = liqH * sh[2], hC = liqH * sh[1], hT = liqH * sh[0];
+    const yF = bot - hF, yC = yF - hC, yT = yC - hT, Y = { T: yT, C: yC, F: yF };
+    const ink = '#6a331f', gold = '#c9a05a', goldD = '#a47b36', goldL = '#ead3a0';
+    const body = 'M34,122 Q34,100 56,100 H144 Q166,100 166,122 V224 Q166,246 144,246 H56 Q34,246 34,224Z';
+    const cav = `<clipPath id="${u}c"><rect x="45" y="110" width="110" height="124" rx="13"/></clipPath><clipPath id="${u}o"><path d="${body}"/></clipPath>`;
+    const wv = (y, per) => `<path d="M-100,${y} q${per / 2},-3 ${per},0${` t${per},0`.repeat(15)} V300 H-100Z"/>`;
+    let liquid;
+    if (lab) {
+      const liq = (L, extra) => `<g class="liq" id="ly${L}" style="--h:${300 - Y[L]}px" fill="${cols[L === 'T' ? 0 : L === 'C' ? 1 : 2]}"><g class="wavy">${wv(Y[L], 25)}</g>${extra || ''}</g>`;
+      const bub = [0, 1, 2, 3].map(i => `<circle class="bub" style="--bx:${(i % 2 ? 1 : -1) * (6 + i * 7)}px;--br:${Math.max(14, hF - 14)}px;animation-delay:-${i * 2.1}s" cx="${96 + i * 4}" cy="${bot - 10}" r="${1.4 + (i % 2)}" fill="#fff"/>`).join('');
+      liquid = liq('T') + liq('C') + liq('F', bub) +
+        ['T', 'C', 'F'].map(L => `<ellipse class="rip" id="rp${L}" cx="100" cy="${Y[L] + 1}" rx="40" ry="4" fill="none" stroke="${cols[L === 'T' ? 0 : L === 'C' ? 1 : 2]}" stroke-width="2"/>`).join('');
+    } else {
+      liquid = `<rect x="40" y="${yF}" width="120" height="${hF + 4}" fill="${cols[2]}"/><rect x="40" y="${yC}" width="120" height="${hC + .5}" fill="${cols[1]}"/><rect x="40" y="${yT}" width="120" height="${hT + .5}" fill="${cols[0]}"/>` +
+        `<g class="wv2" fill="${cols[0]}"><path d="M-30,${yT - 2.5} q10,-3 20,0${' t20,0'.repeat(14)} V${yT + 8} H-30Z"/></g>`;
+    }
+    const halo = lab ? `<circle class="halo hF" cx="100" cy="174" r="122" fill="${cols[2]}"/><circle class="halo hC" cx="100" cy="174" r="92" fill="${cols[1]}"/><circle class="halo hT" cx="100" cy="174" r="62" fill="${cols[0]}"/>` : '';
+    const cap = `<g class="cap"><rect x="76" y="12" width="48" height="56" rx="10" fill="${gold}"/><rect x="76" y="12" width="48" height="11" rx="6" fill="${goldL}" opacity=".7"/><rect x="76" y="44" width="48" height="3.5" fill="${goldD}" opacity=".55"/><rect x="82" y="26" width="5" height="34" rx="2.5" fill="#fff" opacity=".4"/></g>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="${lab ? 'flaskv' : 'bottle'}" viewBox="0 0 200 260" aria-hidden="true"><defs>${cav}</defs>` + halo +
+      `<ellipse cx="100" cy="253" rx="62" ry="5" fill="${ink}" opacity=".15"/>` +
+      `<g class="flask">` +
+      `<rect x="83" y="72" width="34" height="32" rx="4" fill="#fff" fill-opacity=".55" stroke="${ink}" stroke-opacity=".4" stroke-width="2.2"/>` +
+      `<path d="${body}" fill="#fff" fill-opacity=".52" stroke="${ink}" stroke-opacity=".42" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<g clip-path="url(#${u}c)">${liquid}</g>` +
+      `<rect x="45" y="110" width="110" height="124" rx="13" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.6"/>` +
+      `<rect x="52" y="116" width="6" height="104" rx="3" fill="#fff" opacity=".5"/><rect x="63" y="116" width="2.6" height="54" rx="1.3" fill="#fff" opacity=".35"/><rect x="152" y="130" width="3" height="76" rx="1.5" fill="#fff" opacity=".22"/>` +
+      `<rect x="70" y="150" width="60" height="44" rx="5" fill="#fdf5ee" opacity=".92"/><text x="100" y="178" text-anchor="middle" font-family="Georgia,serif" font-size="19" font-weight="700" fill="${ink}" letter-spacing="3.5">VS</text><rect x="86" y="184" width="28" height="1.6" rx=".8" fill="${gold}"/>` +
+      `<g clip-path="url(#${u}o)"><rect class="shn" x="-70" y="90" width="26" height="170" fill="#fff" opacity=".32" transform="skewX(-18)"/></g>` +
+      `<rect x="77" y="64" width="46" height="13" rx="3" fill="${goldD}"/><rect x="77" y="64" width="46" height="5" rx="2.5" fill="${gold}"/>` +
+      cap + `</g></svg>`;
   }
+  const bottle = o => perfume(o || {});
+  const flask = o => perfume(Object.assign({ lab: true }, o));
 
   /* ---------- scène procédurale (parfums créés sur mesure) ---------- */
   function customSpec(comp, dir, seed) {
@@ -307,5 +326,5 @@
   }
 
   G.VS = G.VS || {};
-  G.VS.Art = { scene, bottle, customSpec, mix, shade, hash, rngf };
+  G.VS.Art = { scene, bottle, flask, customSpec, mix, shade, hash, rngf };
 })(typeof window !== 'undefined' ? window : globalThis);

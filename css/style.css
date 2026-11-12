@@ -248,13 +248,13 @@ textarea::placeholder{color:#c0a191}
 .lab-kicker{font-size:12px;letter-spacing:.3em;text-transform:uppercase;font-weight:700;color:var(--terra);opacity:0;transform:translateY(10px);transition:all .9s var(--ease) .1s}
 .lab-title{font-family:var(--serif);font-size:32px;line-height:1.08;margin-top:8px;color:var(--ink);opacity:0;transform:translateY(14px);transition:all 1s var(--ease) .25s}
 #lab.show .lab-kicker,#lab.show .lab-title{opacity:1;transform:none}
-.lab-stage{position:absolute;left:50%;top:54%;width:min(64vw,270px);aspect-ratio:200/260;transform:translate(-50%,-50%);z-index:1}
+.lab-stage{position:absolute;left:50%;top:52%;width:min(78vw,320px);aspect-ratio:200/260;transform:translate(-50%,-50%);z-index:1}
 .lab-stage svg{width:100%;height:100%;overflow:visible}
-.flask{transform-box:fill-box;transform-origin:50% 100%;animation:flaskSway 6s ease-in-out infinite}
-@keyframes flaskSway{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(1.6deg)}}
+.flask{transform-box:fill-box;transform-origin:50% 100%;animation:flaskSway 8s ease-in-out infinite}
+@keyframes flaskSway{0%,100%{transform:rotate(-.8deg)}50%{transform:rotate(.8deg)}}
 .lab-stage.shake .flask{animation:shake .55s ease-in-out infinite}
 @keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-3.5deg)}75%{transform:rotate(3.5deg)}}
-.liq{transform:translateY(var(--h,260px));transition:transform 1.7s cubic-bezier(.3,.75,.2,1)}
+.liq{transform:translateY(var(--h,260px));transition:transform 2.6s cubic-bezier(.35,.1,.2,1)}
 .liq.in{transform:none}
 .wavy{animation:waveX 3.4s linear infinite}
 .liq:nth-child(2) .wavy{animation-duration:4.2s}
@@ -288,7 +288,7 @@ textarea::placeholder{color:#c0a191}
 @keyframes waveSlow{to{transform:translateX(-40px)}}
 .reveal .art-bg{animation:heroIn 1.6s var(--ease) both}
 @keyframes heroIn{0%{clip-path:circle(0% at 50% 88%);transform:scale(1.2)}100%{clip-path:circle(150% at 50% 88%);transform:none}}
-.res-bottle{position:relative;z-index:3;width:min(34vw,140px);margin:-120px auto 0;animation:floaty 6s ease-in-out infinite}
+.res-bottle{position:relative;z-index:3;width:min(44vw,178px);margin:-146px auto 0;animation:floaty 6s ease-in-out infinite}
 .res-bottle svg{width:100%;display:block;overflow:visible}
 .reveal .res-bottle{animation:bottleIn 1.4s .6s var(--spring) both,floaty 6s 2.2s ease-in-out infinite}
 @keyframes bottleIn{0%{transform:translateY(70px) scale(.4) rotate(-12deg);opacity:0}100%{transform:none;opacity:1}}
@@ -571,7 +571,7 @@ html.desktop .scent-card>.btn{grid-column:auto}
 #splash .blobs{z-index:0}
 #splash.out{transform:translateY(-102%)}
 #splash .sp-in{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px}
-#splash svg.bottle{width:88px;animation:spIn 1.2s var(--spring) both,floaty 4s 1.2s ease-in-out infinite}
+#splash svg.bottle{width:124px;animation:spIn 1.2s var(--spring) both,floaty 4s 1.2s ease-in-out infinite}
 #splash h1{font-family:var(--serif);font-weight:600;font-size:34px;margin-top:16px;opacity:0;animation:up .9s .5s forwards;color:var(--ink)}
 #splash p{color:var(--terra);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;opacity:0;animation:up .9s .8s forwards}
 @keyframes spIn{0%{transform:translateY(50px) scale(.4) rotate(-12deg);opacity:0}100%{transform:none;opacity:1}}
@@ -735,7 +735,7 @@ html.desktop .scent-card>.btn{grid-column:auto}
   html.desktop .res-scroll{display:grid;grid-template-columns:minmax(400px,44%) 1fr;align-items:start;padding-bottom:0}
   html.desktop .res-left{position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;background:var(--bg)}
   html.desktop .res-left .res-hero{flex:1;min-height:0;height:auto}
-  html.desktop .res-left .res-bottle{flex:none;width:112px;margin-top:-94px}
+  html.desktop .res-left .res-bottle{flex:none;width:144px;margin-top:-118px}
   html.desktop .res-left .res-title{flex:none;padding:8px 36px 28px}
   html.desktop .res-title h1{font-size:clamp(34px,3vw,50px)}
   html.desktop .res-right{padding:84px 64px 170px 44px;max-width:860px}
@@ -847,3 +847,28 @@ html.desktop #tabbar .side-prefs{margin:8px 0 0}
 .res-bottle{translate:0 calc(var(--rs,0) * -.12px);scale:calc(1 - var(--rs,0) / 3200)}
 .res-title{translate:0 calc(var(--rs,0) * .05px)}
 @media (prefers-reduced-motion:reduce){.pcard,.hcard,.ccard,.ctile,.hero h1,.hero .lead,.hero .brand,.hero .hero-tools,.page-h h2,.page-h p,.res-bottle,.res-title{translate:none;scale:none}.pcard .pic .art-w,.hcard .pic .art-w{scale:none;translate:none}}
+
+/* ---------- flacon : bouchon, reflet, halo, gouttes ---------- */
+.cap,.halo,.bub,.rip{transform-box:fill-box}
+.flaskv .cap{transform-origin:50% 100%;transform:translate(10px,-40px) rotate(9deg);transition:transform 2.2s cubic-bezier(.35,.1,.2,1);animation:capFloat 5s ease-in-out infinite}
+.lab-stage.closed .flaskv .cap{transform:none;animation:none}
+@keyframes capFloat{0%,100%{translate:0 0}50%{translate:0 -5px}}
+.halo{opacity:0;transition:opacity 2.4s var(--ease);transform-origin:50% 50%}
+.has-F .hF{opacity:.14}.has-C .hC{opacity:.13}.has-T .hT{opacity:.12}
+.lab-stage.closed .halo{animation:haloBreath 4.5s ease-in-out infinite}
+@keyframes haloBreath{0%,100%{scale:1}50%{scale:1.05}}
+.bub{opacity:0;animation:bubUp 6.5s ease-in infinite}
+@keyframes bubUp{0%{opacity:0;transform:translate(0,0)}15%{opacity:.55}100%{opacity:0;transform:translate(var(--bx,6px),calc(var(--br,40px) * -1))}}
+.drp{animation:dropFall .62s cubic-bezier(.5,0,.9,.6) forwards}
+@keyframes dropFall{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:1}100%{opacity:.9;transform:translateY(var(--fall,120px)) scale(1)}}
+.rip{opacity:0;transform-origin:50% 50%;transform:scale(.1,.1)}
+.rip.go{animation:rippleOut 1.4s var(--ease) forwards}
+@keyframes rippleOut{0%{opacity:.7;transform:scale(.1,.1)}100%{opacity:0;transform:scale(1,1)}}
+.shn{opacity:0}
+.lab-stage.closed .shn{animation:sheen 2.2s .5s var(--ease) 1 both}
+.res-bottle .shn,.bottle .shn{animation:sheen 1.8s var(--ease) infinite;animation-delay:2.5s;animation-duration:9s}
+@keyframes sheen{0%{transform:skewX(-18deg) translateX(0);opacity:0}12%{opacity:.34}60%{opacity:.34}100%{transform:skewX(-18deg) translateX(320px);opacity:0}}
+.fly{background:rgba(253,245,238,.82);backdrop-filter:blur(4px);box-shadow:0 2px 14px rgba(106,51,31,.10);padding:5px 12px 5px 8px;font-size:18px;gap:6px}
+.fly span{font-size:12px;font-weight:600}
+.ccard .th .bt{width:56%}
+@media (prefers-reduced-motion:reduce){.flaskv .cap{animation:none;transition:none}.bub{display:none}.shn{display:none}}
