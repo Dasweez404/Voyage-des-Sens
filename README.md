@@ -1,0 +1,48 @@
+# Voyage des Sens
+
+Appli mobile (PWA, 100 % hors-ligne) qui transforme un lieu ou une ambiance en parfum : animation de
+création, illustration du lieu, flacon, puis formule détaillée (pyramide olfactive, répartition, signature).
+
+## Lancer
+
+Aucune dépendance, aucun build. Servir le dossier en HTTP puis ouvrir `index.html` sur mobile :
+
+```bash
+python3 -m http.server 8000      # puis http://localhost:8000
+```
+
+Sur téléphone : « Ajouter à l'écran d'accueil » pour l'installer (le service worker met tout en cache).
+
+## Contenu
+
+- **66 lieux préfaits** : Intérieurs (chalet, bibliothèque, hôpital, gare, école…), Particuliers (station-service,
+  fête foraine, cirque, ferme…), Voyage (marché oriental, volcan, jungle, pizzeria new-yorkaise…) et Souvenirs.
+- **320 senteurs** réparties en 16 familles (hespéridés, floraux, boisés, gourmands, marins, minéraux…).
+- **Création sur mesure** : texte libre, directions (nostalgie, découverte, voyage, exotisme), 18 ambiances,
+  senteurs au choix, richesse de la formule.
+- Collection locale, variation d'un parfum, partage de la formule.
+
+## Cohérence des formules
+
+`js/notes.js` définit des accords classiques (affinités) et des dissonances entre familles.
+`js/engine.js` choisit les notes par couche (cœur → fond → tête) en pénalisant les familles qui se contredisent,
+impose toujours un fond tenace, calcule les pourcentages et un indice de cohérence.
+Les lieux préfaits sont écrits à la main avec les mêmes règles.
+
+```bash
+node tools/validate.js    # vérifie ids, couches, pourcentages, motifs d'illustration, harmonie
+```
+
+## Structure
+
+| Fichier | Rôle |
+| --- | --- |
+| `js/notes.js` | familles, ambiances, règles d'accords, 320 notes |
+| `js/scenes.js` | 66 lieux (palette, illustration, notes) |
+| `js/art.js` | moteur d'illustrations SVG animées + flacon (aucune image externe) |
+| `js/engine.js` | composition, statistiques, histoire, analyse du texte libre |
+| `js/app.js` | écrans, animation de création, résultat, collection |
+| `sw.js` | cache hors-ligne |
+
+Ajouter un lieu : une ligne dans `js/scenes.js` (`id|cat|nom|emoji|accroche|palette|illustration|notes`),
+puis `node tools/validate.js`.

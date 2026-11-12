@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voyage des Sens</title>
+<meta name="description" content="Imagine un lieu, un souvenir, une ambiance : on en compose le parfum et on t'en révèle la formule.">
+<meta name="theme-color" content="#0d0a18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Voyage des Sens">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <main id="screens">
+    <!-- ACCUEIL -->
+    <section id="s-home" class="screen active" aria-label="Accueil">
+      <div class="scroll">
+        <header class="hero">
+          <div class="rise-icons" id="riseIcons" aria-hidden="true"></div>
+          <p class="brand">Voyage des Sens</p>
+          <h1>Imagine un lieu.<br><em>Respire-le.</em></h1>
+          <p class="lead">Un souvenir, un voyage, une ambiance&nbsp;: on compose pour toi le parfum qui lui ressemble, et on te livre sa formule.</p>
+          <div class="cta-col">
+            <button class="btn primary big" data-go="create"><span class="ic">✨</span> Composer mon parfum</button>
+            <div class="cta-row">
+              <button class="btn glass" data-go="places"><span class="ic">🧭</span> Explorer les lieux</button>
+              <button class="btn glass" id="btnSurprise"><span class="ic">🎲</span> Surprends-moi</button>
+            </div>
+          </div>
+        </header>
+
+        <section class="block">
+          <div class="block-h"><h2>Inspirations</h2><button class="link" data-go="places">Tout voir →</button></div>
+          <div class="hscroll" id="homeCarousel"></div>
+        </section>
+
+        <section class="block">
+          <div class="block-h"><h2>Quatre façons de voyager</h2></div>
+          <div class="cat-tiles" id="catTiles"></div>
+        </section>
+
+        <section class="block stats" id="homeStats"></section>
+      </div>
+    </section>
+
+    <!-- LIEUX -->
+    <section id="s-places" class="screen" aria-label="Lieux">
+      <div class="scroll">
+        <header class="page-h">
+          <h2>Les lieux</h2>
+          <p>Touche un lieu : on en distille l'odeur.</p>
+          <label class="search"><span>🔍</span><input id="placeSearch" type="search" placeholder="chalet, plage, boulangerie…" autocomplete="off"></label>
+          <div class="chips scrollx" id="catChips"></div>
+        </header>
+        <div class="pgrid" id="placeGrid"></div>
+      </div>
+    </section>
+
+    <!-- CRÉER -->
+    <section id="s-create" class="screen" aria-label="Créer">
+      <div class="scroll">
+        <header class="page-h">
+          <h2>Crée ton parfum</h2>
+          <p>Décris, choisis, mélange&nbsp;: tout est facultatif, une seule envie suffit.</p>
+        </header>
+
+        <section class="step">
+          <h3><b>1</b> Décris ton lieu <small>facultatif</small></h3>
+          <textarea id="freeText" rows="2" maxlength="140" placeholder="Ex. : un chalet en hiver, doux, avec un peu de vanille…"></textarea>
+          <div class="hint" id="textHint"></div>
+        </section>
+
+        <section class="step">
+          <h3><b>2</b> Une direction</h3>
+          <div class="dir-grid" id="dirGrid"></div>
+        </section>
+
+        <section class="step">
+          <h3><b>3</b> Des ambiances <small id="moodCount"></small></h3>
+          <div class="chips wrap" id="moodChips"></div>
+        </section>
+
+        <section class="step">
+          <h3><b>4</b> Des senteurs <small id="pickCount">jusqu'à 5</small></h3>
+          <label class="search"><span>🔍</span><input id="noteSearch" type="search" placeholder="vanille, rose, cèdre, pop-corn…" autocomplete="off"></label>
+          <div class="chips scrollx" id="famChips"></div>
+          <div class="chips wrap notes" id="noteChips"></div>
+        </section>
+
+        <section class="step">
+          <h3><b>5</b> Richesse de la formule</h3>
+          <div class="seg" id="richSeg">
+            <button data-r="0">Épurée<small>6 notes</small></button>
+            <button data-r="1" class="on">Équilibrée<small>9 notes</small></button>
+            <button data-r="2">Riche<small>11 notes</small></button>
+          </div>
+        </section>
+        <div class="spacer-cta"></div>
+      </div>
+      <div class="create-bar" id="createBar">
+        <div class="cb-info" id="cbInfo">Choisis au moins une envie</div>
+        <button class="btn primary" id="btnCreate" disabled>Créer ✨</button>
+      </div>
+    </section>
+
+    <!-- COLLECTION -->
+    <section id="s-coll" class="screen" aria-label="Collection">
+      <div class="scroll">
+        <header class="page-h">
+          <h2>Ma collection</h2>
+          <p>Tes parfums enregistrés, toujours à portée de nez.</p>
+        </header>
+        <div class="cgrid" id="collGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav id="tabbar" aria-label="Navigation">
+    <button data-go="home" class="on"><i>🏠</i><span>Accueil</span></button>
+    <button data-go="places"><i>🧭</i><span>Lieux</span></button>
+    <button data-go="create" class="mid"><i>✨</i><span>Créer</span></button>
+    <button data-go="coll"><i>💜</i><span>Collection</span><b id="collBadge" hidden>0</b></button>
+  </nav>
+
+  <!-- LABORATOIRE (animation de création) -->
+  <div id="lab" class="overlay" aria-hidden="true" hidden>
+    <div class="lab-bg"></div>
+    <div class="lab-stars"></div>
+    <button class="skip" id="labSkip">Passer</button>
+    <div class="lab-top">
+      <div class="lab-emoji" id="labEmoji">✨</div>
+      <div class="lab-title" id="labTitle"></div>
+    </div>
+    <div class="lab-stage" id="labStage"></div>
+    <div class="lab-bottom">
+      <div class="lab-phase" id="labPhase"></div>
+      <div class="lab-dots"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="flash" id="labFlash"></div>
+  </div>
+
+  <!-- RÉSULTAT -->
+  <div id="result" class="overlay" aria-hidden="true" hidden>
+    <div class="res-scroll" id="resScroll"></div>
+    <div class="res-bar" id="resBar"></div>
+  </div>
+
+  <!-- Fiche d'une note -->
+  <div id="sheetWrap" hidden>
+    <div class="sheet-bg" id="sheetBg"></div>
+    <div class="sheet" id="sheet"></div>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script src="js/notes.js"></script>
+<script src="js/scenes.js"></script>
+<script src="js/art.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
