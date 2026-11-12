@@ -22,6 +22,7 @@ Sur téléphone : « Ajouter à l'écran d'accueil » pour l'installer (le servi
 - **Création sur mesure** : texte libre, directions (nostalgie, découverte, voyage, exotisme), 18 ambiances,
   senteurs au choix, richesse de la formule.
 - **70 destinations réelles** (Chamonix, Marrakech, Kyoto, Bora Bora, La Havane…) : chaque parfum reçoit la destination dont l'air lui ressemble le plus, avec un bouton « Découvrir ma destination » (affinité olfactive, itinéraire en trois moments, période, carte) et un bouton « Autre destination ».
+- **Préférences** : 16 groupes d'allergies et d'intolérances (agrumes, fruits à coque, lait, gluten, alcools…), familles entières ou senteurs précises à éviter. Ces senteurs n'apparaissent ni dans le sélecteur ni dans les formules ; les lieux préfaits sont adaptés en remplaçant chaque note écartée par la plus proche.
 - Collection locale, variation d'un parfum, partage de la formule.
 
 ## Cohérence des formules
@@ -42,6 +43,7 @@ node tools/validate.js    # vérifie ids, couches, pourcentages, motifs d'illust
 | `js/notes_extra.js` | boissons, sirops, chips, snacks, confiseries, pâtisseries, fleurs, quotidien |
 | `js/notes.js` | familles, ambiances, règles d'accords, 549 notes |
 | `js/scenes.js` | 111 lieux (palette, illustration, notes) |
+| `js/prefs.js` | groupes d'allergies et d'intolérances |
 | `js/destinations.js` | 70 destinations, étapes olfactives, lieu → destination |
 | `js/art.js` | moteur d'illustrations SVG animées + flacon (aucune image externe) |
 | `js/engine.js` | composition, statistiques, histoire, analyse du texte libre |

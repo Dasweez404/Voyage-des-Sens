@@ -100,7 +100,7 @@
     const list = VS.SCENES.filter(s => (state.cat === 'all' || s.cat === state.cat) && (state.sub === 'all' || s.sub === state.sub) && (!q || strip(s.n + ' ' + s.tag + ' ' + s.notes.map(id => NOTES[id].n).join(' ')).includes(q)));
     $('#placeCount').textContent = list.length + (list.length > 1 ? ' lieux' : ' lieu');
     const grid = $('#placeGrid');
-    grid.innerHTML = list.length ? list.map((s, i) => `<button class="pcard" data-sc="${s.id}" style="--i:${Math.min(i, 14)}"><div class="pic"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span></div><b>${s.n}</b><span class="t">${s.tag}</span><span class="ns">${noteIcons(s, 5)}</span></button>`).join('') : `<div class="empty"><span class="shape"></span>Aucun lieu ne répond à « ${state.q} ».<br>Essaie de le décrire dans <b>Créer</b>.</div>`;
+    grid.innerHTML = list.length ? list.map((s, i) => `<button class="pcard" data-sc="${s.id}" style="--i:${Math.min(i, 14)}"><div class="pic"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span>${E.adaptIds(s.notes).swaps.length ? '<span class="adp">Adapté</span>' : ''}</div><b>${s.n}</b><span class="t">${s.tag}</span><span class="ns">${noteIcons(s, 5)}</span></button>`).join('') : `<div class="empty"><span class="shape"></span>Aucun lieu ne répond à « ${state.q} ».<br>Essaie de le décrire dans <b>Créer</b>.</div>`;
     lazyArt(grid);
   }
   $('#placeSearch').addEventListener('input', e => { state.q = e.target.value; renderPlaces(); });
@@ -130,13 +130,16 @@
   const byName = (a, b) => a.n.localeCompare(b.n, 'fr');
   state.macro = 'all'; state.layer = 'all'; state.open = new Set();
 
-  function renderNotePicker() {
-    const cnt = ids => VS.NOTE_LIST.filter(n => ids.includes(n.f)).length;
+  function renderMacros() {
+    const cnt = ids => VS.NOTE_LIST.filter(n => ids.includes(n.f) && !VS.EXCL.has(n.id)).length;
     $('#macroChips').innerHTML = [['all', 'Tout', Object.keys(FAM)]].concat(MACROS).map(m => `<button class="chip${state.macro === m[0] ? ' on' : ''}" data-m="${m[0]}"><span class="dot" style="--fc:${FAM[m[2][0]].c}"></span>${m[1]} <em>${cnt(m[2])}</em></button>`).join('');
     $$('#macroChips .chip').forEach(b => b.addEventListener('click', () => {
       state.macro = b.dataset.m; state.open = new Set(); vibrate(8);
       $$('#macroChips .chip').forEach(x => x.classList.toggle('on', x === b)); renderNotes();
     }));
+  }
+  function renderNotePicker() {
+    renderMacros();
     $$('#layerSeg button').forEach(b => b.addEventListener('click', () => {
       state.layer = b.dataset.l; vibrate(8); $$('#layerSeg button').forEach(x => x.classList.toggle('on', x === b)); renderNotes();
     }));
@@ -180,12 +183,12 @@
     let list, label;
     if (state.moods.size || state.dirs.size || picks.length) {
       label = 'Suggestions pour toi';
-      list = VS.NOTE_LIST.filter(n => !state.picks.includes(n.id)).map(n => {
+      list = VS.NOTE_LIST.filter(n => !state.picks.includes(n.id) && !VS.EXCL.has(n.id)).map(n => {
         let sc = n.t.reduce((a, t) => a + (tw[t] || 0), 0);
         picks.forEach(p => { sc += VS.pairScore(n.f, p.f) * 1.1; });
         return { n, sc: sc + (ICONIC.includes(n.id) ? .4 : 0) };
       }).sort((a, b) => b.sc - a.sc).slice(0, 12).map(x => x.n);
-    } else { label = 'Pour commencer'; list = ICONIC.map(id => NOTES[id]); }
+    } else { label = 'Pour commencer'; list = ICONIC.map(id => NOTES[id]).filter(n => !VS.EXCL.has(n.id)); }
     $('#suggL').textContent = label;
     $('#sugg').innerHTML = list.map(n => chipHTML(n, state.picks.includes(n.id))).join('');
   }
@@ -194,7 +197,7 @@
     const fams = state.macro === 'all' ? Object.keys(FAM) : MACROS.find(m => m[0] === state.macro)[2];
     let html = '';
     fams.forEach(f => {
-      const ns = VS.NOTE_LIST.filter(n => n.f === f && (state.layer === 'all' || q || n.l === state.layer) && (!q || strip(n.n + ' ' + n.d).includes(q)));
+      const ns = VS.NOTE_LIST.filter(n => n.f === f && !VS.EXCL.has(n.id) && (state.layer === 'all' || q || n.l === state.layer) && (!q || strip(n.n + ' ' + n.d).includes(q)));
       if (!ns.length) return;
       const open = !!q || state.open.has(f) || (state.macro !== 'all' && fams.length <= 3);
       const sel = state.picks.filter(id => NOTES[id].f === f).length;
@@ -236,10 +239,10 @@
     const moods = Array.from(new Set([...state.moods, ...an.tags])).slice(0, 6);
     const dirs = Array.from(new Set([...state.dirs, ...an.dirs])).slice(0, 2);
     const picks = state.picks.slice();
-    an.picks.forEach(p => { if (!picks.includes(p) && picks.length < 5) picks.push(p); });
+    an.picks.forEach(p => { if (!picks.includes(p) && !VS.EXCL.has(p) && picks.length < 5) picks.push(p); });
     if (an.scene && !picks.length) {
       const ns = an.scene.notes.map(id => NOTES[id]);
-      ['C', 'F', 'T'].forEach(l => { const n = ns.find(x => x.l === l); if (n && picks.length < 3) picks.push(n.id); });
+      ['C', 'F', 'T'].forEach(l => { const n = ns.find(x => x.l === l); if (n && !VS.EXCL.has(n.id) && picks.length < 3) picks.push(n.id); });
     }
     const spec = an.scene ? { id: 't' + an.scene.id, pal: an.scene.pal, art: an.scene.art } : null;
     const opts = { moods, dirs, picks, size: [[2, 2, 2], [3, 3, 3], [3, 4, 4]][state.rich], spec };
@@ -255,7 +258,7 @@
     if (!coll.length) { grid.innerHTML = `<div class="empty"><span class="shape"></span>Ta collection est vide.<br>Compose un parfum et touche <b>Garder</b> pour le retrouver ici.</div>`; return; }
     grid.innerHTML = coll.map((c, i) => {
       const comp = rebuild(c);
-      return `<button class="ccard" data-k="${c.key}" style="animation-delay:${i * 60}ms"><div class="th">${Art.scene(comp.spec, { static: true })}<span class="bt">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</span></div><div><b>${comp.name}</b><div class="ac">${comp.accord}</div><div class="nn">${comp.notes.slice(0, 5).map(n => n.e + ' ' + n.n).join(' · ')}</div></div><span class="del" data-del="${c.key}" aria-label="Supprimer">✕</span></button>`;
+      return `<button class="ccard" data-k="${c.key}" style="animation-delay:${i * 60}ms"><div class="th">${Art.scene(comp.spec, { static: true })}<span class="bt">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</span></div><div><b>${comp.name}</b><div class="ac">${comp.accord}</div>${comp.conflicts && comp.conflicts.length ? '<div class="warnb">Contient une senteur que tu évites</div>' : ''}<div class="nn">${comp.notes.slice(0, 5).map(n => n.e + ' ' + n.n).join(' · ')}</div></div><span class="del" data-del="${c.key}" aria-label="Supprimer">✕</span></button>`;
     }).join('');
     $$('.ccard', grid).forEach(b => b.addEventListener('click', e => {
       const del = e.target.closest('[data-del]');
@@ -362,6 +365,12 @@
       return { s, v: d / (na * nb) };
     }).sort((x, y) => y.v - x.v).slice(0, 7).map(x => x.s);
   }
+  function adaptHTML(comp) {
+    let h = '';
+    if (comp.swaps && comp.swaps.length) h += `<div class="adapt"><b>Adapté à tes préférences</b>${comp.swaps.map(w => `<span>${NOTES[w.from].n} → ${NOTES[w.to].n}</span>`).join('')}</div>`;
+    if (comp.conflicts && comp.conflicts.length) h += `<div class="adapt warn"><b>Attention</b>Cette formule contient ${lst(comp.conflicts.map(id => NOTES[id].n.toLowerCase()))}, que tu as choisi d'éviter.</div>`;
+    return h;
+  }
   function resultHTML(comp) {
     const st = comp.stats, maxP = Math.max.apply(null, comp.notes.map(n => n.pct));
     const catLabel = comp.cat && CAT[comp.cat] ? CAT[comp.cat].n : 'Création sur mesure';
@@ -386,7 +395,7 @@
     return `<div class="res-hero"><div class="art-bg" id="heroArt">${Art.scene(comp.spec)}</div><div class="res-top"><button class="round" id="rBack" aria-label="Retour">←</button><span class="top-actions"><button class="pill" id="rMix">Variation</button><button class="pill" id="rShare">Partager</button></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
       `<div class="res-bottle">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</div>` +
       `<div class="res-title"><div class="badge">${catLabel}</div><h1>${comp.name}</h1><p class="tg">${tag}</p><span class="accord">${comp.accord}</span></div>` +
-      `<section class="sec rv"><h2>L'histoire</h2><div class="story"><p>${comp.story}</p>${tags.length ? `<div class="tags">${tags.map(t => `<span>${t}</span>`).join('')}</div>` : ''}</div></section>` +
+      `<section class="sec rv"><h2>L'histoire</h2>${adaptHTML(comp)}<div class="story"><p>${comp.story}</p>${tags.length ? `<div class="tags">${tags.map(t => `<span>${t}</span>`).join('')}</div>` : ''}</div></section>` +
       `<section class="sec"><h2 class="rv">Pyramide olfactive</h2><p class="sub rv">Touche une note pour la découvrir.</p>${pyr}</section>` +
       `<section class="sec rv"><h2>Palette de senteurs</h2><div class="donut-w"><div class="donut"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="15"/>${segs}</svg><div class="mid"><small>dominante</small><b>${comp.families[0].n}</b></div></div><div class="leg">${legend}</div></div></section>` +
       `<section class="sec rv"><h2>Signature</h2><div class="gauges"><div class="g"><div class="row"><span>Intensité</span><b>${st.intensity} / 10</b></div><div class="track"><div class="fill" style="--w:${st.intensity * 10}%"></div></div></div><div class="g"><div class="row"><span>Tenue</span><b>≈ ${st.hours} h</b></div><div class="track"><div class="fill" style="--w:${Math.round(st.hours / 14 * 100)}%"></div></div></div><div class="g"><div class="row"><span>Sillage</span><b>${st.sillage}</b></div><div class="track"><div class="fill" style="--w:${st.sillageV}%"></div></div></div></div>` +
@@ -430,7 +439,7 @@
     if (!fromPop && history.state && history.state.r) { try { history.back(); } catch (e) { /* ignore */ } }
   }
   let skipPop = 0;
-  window.addEventListener('popstate', () => { if (skipPop) { skipPop--; return; } if (!$('#sheetWrap').hidden) { closeSheet(); return; } if (destOpen) { closeDest(true); return; } if (resultOpen) closeResult(true); });
+  window.addEventListener('popstate', () => { if (skipPop) { skipPop--; return; } if (prefsOpen) { closePrefs(true); return; } if (!$('#sheetWrap').hidden) { closeSheet(); return; } if (destOpen) { closeDest(true); return; } if (resultOpen) closeResult(true); });
   function confetti(comp) {
     const wrap = $('#result'); if (wrap.hidden) return;
     const r = $('.res-bottle', wrap); if (!r) return;
@@ -545,6 +554,80 @@
     sh.addEventListener('touchmove', e => { if (y0 != null && e.touches[0].clientY - y0 > 90) { y0 = null; closeSheet(); } }, { passive: true });
   })();
 
+  /* ---------- préférences : allergies et odeurs à éviter ---------- */
+  const PREF_KEY = 'vs.prefs';
+  let prefs = Object.assign({ allergies: [], fams: [], notes: [] }, store.get(PREF_KEY, {}));
+  let prefsOpen = false;
+  function computeExcl() {
+    const ex = new Set();
+    prefs.allergies.forEach(id => { const g = VS.ALLERGENS.find(x => x.id === id); if (!g) return; g.ids.forEach(i => ex.add(i)); VS.NOTE_LIST.forEach(n => { if (g.fams.includes(n.f)) ex.add(n.id); }); });
+    prefs.fams.forEach(f => VS.NOTE_LIST.forEach(n => { if (n.f === f) ex.add(n.id); }));
+    prefs.notes.forEach(i => ex.add(i));
+    VS.EXCL = ex;
+  }
+  function updateExclUI() {
+    const g = prefs.allergies.length + prefs.fams.length + prefs.notes.length, n = VS.EXCL.size;
+    const b = $('#prefBadge'); b.hidden = !g; b.textContent = g;
+    const row = $('#exclRow'); row.classList.toggle('on', g > 0);
+    row.innerHTML = g ? `<span><b>${n}</b> senteurs écartées de tes parfums</span><i>Modifier</i>` : `<span>Allergies, odeurs que tu ne supportes pas…</span><i>Définir</i>`;
+  }
+  function applyPrefs() {
+    computeExcl(); store.set(PREF_KEY, prefs);
+    state.picks = state.picks.filter(id => !VS.EXCL.has(id));
+    updateExclUI();
+  }
+  const groupCount = g => { const s = new Set(g.ids); VS.NOTE_LIST.forEach(n => { if (g.fams.includes(n.f)) s.add(n.id); }); return s.size; };
+  function prefsHTML() {
+    const al = VS.ALLERGENS.map(g => `<button class="al${prefs.allergies.includes(g.id) ? ' on' : ''}" data-al="${g.id}"><b>${g.n}</b><small>${g.hint}</small><em>${groupCount(g)} senteurs</em></button>`).join('');
+    const fams = Object.keys(FAM).map(f => `<button class="chip${prefs.fams.includes(f) ? ' on' : ''}" data-pf="${f}"><span class="dot" style="--fc:${FAM[f].c}"></span>${FAM[f].n} <em>${VS.NOTE_LIST.filter(n => n.f === f).length}</em></button>`).join('');
+    return `<div class="pf-top"><button class="round" id="pfBack" aria-label="Retour">←</button><b>Mes préférences</b></div><div class="pf-in">` +
+      `<p class="pf-lead">Dis-nous ce que tu ne supportes pas : ces senteurs ne seront jamais utilisées dans tes parfums. Les lieux préfaits sont adaptés en remplaçant chaque note écartée par la plus proche.</p>` +
+      `<div class="pf-sum" id="pfSum"></div>` +
+      `<section class="pf-sec"><h2>Allergies & intolérances</h2><p class="sub">Touche un groupe : toutes les senteurs qui s'y rattachent sont écartées.</p><div class="al-grid">${al}</div></section>` +
+      `<section class="pf-sec"><h2>Odeurs que je ne supporte pas</h2><h4>Familles entières</h4><div class="chips wrap">${fams}</div><h4>Senteurs précises</h4>` +
+      `<label class="search"><span></span><input id="pfSearch" type="search" placeholder="Chercher une senteur à écarter…" autocomplete="off"></label><div class="chips wrap" id="pfRes"></div>` +
+      `<h4>Écartées une par une</h4><div class="chips wrap" id="pfNotes"></div></section>` +
+      `<div style="margin-top:26px"><button class="btn soft" id="pfReset">Tout réinitialiser</button></div>` +
+      `<p class="pf-note">Voyage des Sens est un jeu d'inspiration, pas un avis médical : en cas d'allergie avérée, vérifie toujours la composition d'un vrai parfum et demande conseil à un professionnel de santé.</p></div>`;
+  }
+  function refreshPrefs() {
+    const n = VS.EXCL.size, tot = VS.NOTE_LIST.length;
+    $('#pfSum').innerHTML = n ? `<div class="n"><b>${n}</b> senteurs écartées <small>sur ${tot}</small></div><div class="bar"><i style="width:${Math.min(100, n / tot * 100).toFixed(1)}%"></i></div>` : `<div class="n">Aucune exclusion</div><div class="bar"><i></i></div>`;
+    $('#pfNotes').innerHTML = prefs.notes.length ? prefs.notes.map(id => `<button class="chip note on" data-pd="${id}" style="--fc:${FAM[NOTES[id].f].c}">${NOTES[id].e} ${NOTES[id].n} <u>×</u></button>`).join('') : '<span class="pf-none">Aucune pour l\'instant.</span>';
+    const q = strip(($('#pfSearch').value || '').trim());
+    const res = q ? VS.NOTE_LIST.filter(x => !VS.EXCL.has(x.id) && strip(x.n).includes(q)).sort((a, b) => a.n.localeCompare(b.n, 'fr')).slice(0, 16) : [];
+    $('#pfRes').innerHTML = q ? (res.length ? res.map(x => `<button class="chip note" data-pn="${x.id}" style="--fc:${FAM[x.f].c}">${x.e} ${x.n} <u>+</u></button>`).join('') : '<span class="pf-none">Rien à écarter avec ce mot.</span>') : '';
+  }
+  function togglePref(list, v) { const i = list.indexOf(v); i >= 0 ? list.splice(i, 1) : list.push(v); }
+  function openPrefs() {
+    const w = $('#prefs'), sc = $('#prefsScroll');
+    sc.innerHTML = prefsHTML(); sc.scrollTop = 0; refreshPrefs();
+    sc.onclick = e => {
+      const al = e.target.closest('[data-al]'), pf = e.target.closest('[data-pf]'), pn = e.target.closest('[data-pn]'), pd = e.target.closest('[data-pd]');
+      if (al) { togglePref(prefs.allergies, al.dataset.al); al.classList.toggle('on', prefs.allergies.includes(al.dataset.al)); }
+      else if (pf) { togglePref(prefs.fams, pf.dataset.pf); pf.classList.toggle('on', prefs.fams.includes(pf.dataset.pf)); }
+      else if (pn) { prefs.notes.push(pn.dataset.pn); }
+      else if (pd) { prefs.notes = prefs.notes.filter(x => x !== pd.dataset.pd); }
+      else if (e.target.closest('#pfReset')) { prefs = { allergies: [], fams: [], notes: [] }; applyPrefs(); sc.innerHTML = prefsHTML(); refreshPrefs(); toast('Préférences réinitialisées'); return; }
+      else if (e.target.closest('#pfBack')) { closePrefs(); return; }
+      else return;
+      vibrate(8); applyPrefs(); refreshPrefs();
+    };
+    sc.addEventListener('input', e => { if (e.target.id === 'pfSearch') refreshPrefs(); });
+    w.hidden = false; w.setAttribute('aria-hidden', 'false'); void w.offsetWidth; w.classList.add('show');
+    if (!prefsOpen) { try { history.pushState({ p: 1 }, ''); } catch (err) { /* ignore */ } prefsOpen = true; }
+  }
+  function closePrefs(fromPop) {
+    if (!prefsOpen) return;
+    prefsOpen = false; const w = $('#prefs'); w.classList.remove('show'); w.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { if (!prefsOpen) { w.hidden = true; $('#prefsScroll').innerHTML = ''; } }, 800);
+    if (!fromPop && history.state && history.state.p) { try { skipPop++; history.back(); } catch (err) { /* ignore */ } }
+    // les exclusions changent ce qu'on voit partout
+    renderPlaces(); renderMacros(); renderNotes(); refreshTray(); refreshSugg(); sync();
+  }
+  $('#btnPrefs').addEventListener('click', openPrefs);
+  $('#exclRow').addEventListener('click', openPrefs);
+
   /* ---------- écran d'ouverture ---------- */
   function splash() {
     const s = document.createElement('div'); s.id = 'splash';
@@ -554,7 +637,7 @@
   }
 
   /* ---------- init ---------- */
-  renderHome(); renderPlaces(); renderCreate(); sync();
+  applyPrefs(); renderHome(); renderPlaces(); renderCreate(); sync();
   $('#collBadge').hidden = !coll.length; $('#collBadge').textContent = coll.length;
   splash();
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {

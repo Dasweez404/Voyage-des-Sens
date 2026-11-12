@@ -1,7 +1,7 @@
 // Vérifie la cohérence des données (ids, couches, harmonie) — node tools/validate.js
 const fs = require('fs'), path = require('path'), vm = require('vm');
 global.window = global;
-for (const f of ['notes_extra', 'notes', 'scenes', 'destinations', 'art', 'engine']) vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8'), { filename: f });
+for (const f of ['notes_extra', 'notes', 'scenes', 'destinations', 'prefs', 'art', 'engine']) vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8'), { filename: f });
 const VS = global.VS; let bad = 0;
 console.log('notes:', VS.NOTE_LIST.length, 'lieux:', VS.SCENES.length);
 const seen = new Set(VS.NOTE_LIST.map(n => n.id));
@@ -39,6 +39,20 @@ for (let i = 0; i < 300; i++) {
 }
 console.log('harmonie min (300 créations):', min);
 console.log(VS.Engine.compose({ moods: ['cha', 'rec'], dirs: ['nos'] }).story);
+// préférences : ids valides + aucune senteur écartée ne doit ressortir
+VS.ALLERGENS.forEach(g => { g.ids.forEach(id => { if (!VS.NOTES[id]) { console.log('allergène : note inconnue', g.id, id); bad++; } }); g.fams.forEach(f => { if (!VS.FAMILIES[f]) { console.log('allergène : famille', g.id, f); bad++; } }); });
+{
+  const ex = new Set();
+  VS.ALLERGENS.filter(g => ['lait', 'gluten', 'agrumes', 'alcool', 'pollens'].includes(g.id)).forEach(g => { g.ids.forEach(i => ex.add(i)); VS.NOTE_LIST.filter(n => g.fams.includes(n.f)).forEach(n => ex.add(n.id)); });
+  VS.NOTE_LIST.filter(n => ['cr', 'go'].includes(n.f)).forEach(n => ex.add(n.id));
+  VS.EXCL = ex;
+  let leaks = 0, swaps = 0;
+  VS.SCENES.forEach(x => { const c = VS.Engine.fromScene(x); swaps += c.swaps.length; if (c.ids.some(i => ex.has(i))) leaks++; if (c.notes.length < 5) { console.log('trop peu de notes après adaptation', x.id); bad++; } });
+  for (let i = 0; i < 300; i++) { const c = VS.Engine.compose({ moods: [VS.MOODS[i % 18][0]], dirs: [VS.DIRECTIONS[i % 4][0]], picks: i % 3 ? [] : ['vanille', 'cuir'] }); if (c.ids.some(id => ex.has(id))) leaks++; }
+  console.log('exclusions :', ex.size, 'senteurs écartées |', swaps, 'remplacements sur les lieux | fuites :', leaks);
+  if (leaks) bad++;
+  VS.EXCL = new Set();
+}
 // sous-catégories
 VS.SCENES.forEach(x => { const subs = (VS.SUBS[x.cat] || []).map(y => y[0]); if (!x.sub || !subs.includes(x.sub)) { console.log('sous-catégorie manquante', x.id, x.cat, x.sub); bad++; } });
 Object.keys(VS.SUBS).forEach(c => VS.SUBS[c].forEach(y => y[2].split(' ').forEach(id => { const sc = VS.SCENES.find(z => z.id === id); if (!sc) { console.log('sous-cat : lieu inconnu', id); bad++; } else if (sc.cat !== c) { console.log('sous-cat : mauvaise catégorie', id); bad++; } })));

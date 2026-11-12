@@ -107,7 +107,8 @@
       emoji: meta.emoji || '', cat: meta.cat || '', dirs: meta.dirs || [], moods: meta.moods || [],
       ids: all.map(n => n.id), notes: all, byLayer: out, layerShare, layerColor, families, accord,
       stats: { intensity, hours, sillage: sillageLabels[sillageIdx], sillageV: clamp(Math.round((intensity - 1) * 11), 8, 100), seasons, best, moment, harmony },
-      spec: meta.spec || null
+      spec: meta.spec || null,
+      swaps: meta.swaps || [], conflicts: ids.filter(id => VS.EXCL && VS.EXCL.has(id))
     };
     const r = Art.rngf(Art.hash(comp.name + ids.join()));
     comp.story = story(comp, r, meta);
@@ -146,9 +147,29 @@
     return s.join(' ');
   }
 
+  /* ---------- adaptation aux préférences ---------- */
+  function adaptIds(ids) {
+    const ex = VS.EXCL;
+    if (!ex || !ex.size || !ids.some(id => ex.has(id))) return { ids, swaps: [] };
+    const out = [], swaps = [], kept = ids.filter(id => !ex.has(id));
+    ids.forEach(id => {
+      if (!ex.has(id)) { out.push(id); return; }
+      const n = NOTES[id]; let best = null, bs = -1e9;
+      VS.NOTE_LIST.forEach(c => {
+        if (c.l !== n.l || ex.has(c.id) || ids.includes(c.id) || out.includes(c.id)) return;
+        let sc = c.t.filter(t => n.t.includes(t)).length * 1.2 + (c.f === n.f ? 2 : 0) + (VS.pairScore(c.f, n.f) > 0 ? .8 : 0);
+        kept.forEach(k => { sc += VS.pairScore(c.f, NOTES[k].f) * .6; });
+        if (sc > bs) { bs = sc; best = c; }
+      });
+      if (best) { out.push(best.id); swaps.push({ from: id, to: best.id }); }
+    });
+    return { ids: out, swaps };
+  }
+
   /* ---------- à partir d'un lieu préfait ---------- */
   function fromScene(sc) {
-    return build(sc.notes, { key: sc.id, name: sc.n, tag: sc.tag, sceneId: sc.id, emoji: sc.e, cat: sc.cat, spec: { id: sc.id, pal: sc.pal, art: sc.art, n: sc.n } });
+    const ad = adaptIds(sc.notes);
+    return build(ad.ids, { swaps: ad.swaps, key: sc.id, name: sc.n, tag: sc.tag, sceneId: sc.id, emoji: sc.e, cat: sc.cat, spec: { id: sc.id, pal: sc.pal, art: sc.art, n: sc.n } });
   }
 
   /* ---------- création sur mesure ---------- */
@@ -164,7 +185,8 @@
   function compose(o) {
     o = o || {};
     const moods = (o.moods || []).slice(), dirs = (o.dirs || []).slice();
-    const picks = (o.picks || []).map(id => NOTES[id]).filter(Boolean);
+    const EXC = VS.EXCL || new Set();
+    const picks = (o.picks || []).map(id => NOTES[id]).filter(n => n && !EXC.has(n.id));
     const seed = o.seed != null ? o.seed : Math.floor(Math.random() * 1e9);
     const r = Art.rngf(seed);
     const size = o.size || [3, 3, 3];
@@ -181,7 +203,7 @@
     VS.NOTE_LIST.forEach(n => noise[n.id] = r() * 1.1);
 
     function score(n, layer) {
-      if (all().includes(n)) return -99;
+      if (all().includes(n) || EXC.has(n.id)) return -99;
       let s = n.t.reduce((a, t) => a + (tw[t] || 0), 0) + noise[n.id];
       let coh = 0, bad = 0;
       all().forEach(c => { const p = VS.pairScore(n.f, c.f); coh += p; if (p < 0) bad++; });
@@ -196,7 +218,7 @@
     function fill(layer, count) {
       while (chosen[layer].length < count) {
         let best = null, bs = -1e9;
-        VS.NOTE_LIST.forEach(n => { if (n.l !== layer) return; const sc = score(n, layer); if (sc > bs) { bs = sc; best = n; } });
+        VS.NOTE_LIST.forEach(n => { if (n.l !== layer || EXC.has(n.id)) return; const sc = score(n, layer); if (sc > bs) { bs = sc; best = n; } });
         if (!best) break; chosen[layer].push(best);
       }
     }
@@ -204,7 +226,7 @@
     // ancrage obligatoire : un fond tenace
     if (!chosen.F.some(n => FIXATIVES.has(n.f))) {
       let best = null, bs = -1e9;
-      VS.NOTE_LIST.forEach(n => { if (n.l !== 'F' || !FIXATIVES.has(n.f) || chosen.F.includes(n)) return; const sc = score(n, 'F'); if (sc > bs) { bs = sc; best = n; } });
+      VS.NOTE_LIST.forEach(n => { if (n.l !== 'F' || !FIXATIVES.has(n.f) || chosen.F.includes(n) || EXC.has(n.id)) return; const sc = score(n, 'F'); if (sc > bs) { bs = sc; best = n; } });
       if (best) { const idx = chosen.F.findIndex(n => !picks.includes(n)); if (idx >= 0) chosen.F.splice(idx, 1); chosen.F.push(best); }
     }
     // tri par pertinence dans chaque couche (les choix de l'utilisateur d'abord)
@@ -276,5 +298,5 @@
     });
   }
 
-  VS.Engine = { build, fromScene, compose, analyzeText, de, destinations };
+  VS.Engine = { build, fromScene, compose, analyzeText, de, destinations, adaptIds };
 })(typeof window !== 'undefined' ? window : globalThis);
