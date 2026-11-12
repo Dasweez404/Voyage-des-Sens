@@ -1,7 +1,7 @@
 /* Voyage des Sens — interface */
 (function () {
   'use strict';
-  const BUILD = '2611121406';
+  const BUILD = '2611121418';
   // page et scripts de versions différentes (cache) : on repart d'un état propre, une seule fois
   (function guard() {
     const meta = document.querySelector('meta[name="vs-build"]');

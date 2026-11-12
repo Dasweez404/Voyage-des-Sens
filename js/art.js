@@ -186,9 +186,9 @@
       const c = toHsl(full(m));
       if (c.s < .1) return c.l > .1 && c.l < .9 ? { l: c.l, i: lvIdx(c.l), h: H0, s: .14 } : null;
       const off = Math.max(-28, Math.min(28, wrapD(c.h - H0) * .2));
-      return { l: c.l, i: lvIdx(c.l), h: H0 + Math.round(off / 24) * 24, s: c.s < .4 ? .42 : .72 };
+      return { l: c.l, i: lvIdx(c.l), h: H0 + Math.round(off / 24) * 24, s: c.s < .4 ? .24 : .42 };
     };
-    const at = (m, i) => { const k = info(m); return k ? fromHsl(k.h, k.s, LV[Math.max(0, Math.min(5, i))]) : m; };
+    const at = (m, i) => { const k = info(m); if (!k) return m; i = Math.max(0, Math.min(5, i)); return fromHsl(k.h, k.s * [1, 1, .95, .85, .75, .65][i], LV[i]); };   // couleurs posées : saturation modérée, un peu moins dans les clairs
     return { info, at, map: (m, d) => { const k = info(m); return k ? at(m, k.i + (d || 0)) : m; } };
   }
   const HEX = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
@@ -220,7 +220,7 @@
     const u = 'u' + (++UID);
     const pal = spec.pal;
     const X = { pal, a: pal[0], b: pal[1], c: pal[2], d: pal[3], u, r: rngf(hash(spec.id || 'x')), gl: mix(pal[1], '#ffffff', .3) };
-    X.lc = fromHsl(toHsl(pal[2]).h, .85, .72);   // couleur des sources de lumière
+    X.lc = fromHsl(toHsl(pal[2]).h, .7, .7);   // couleur des sources de lumière
     const M2 = makeMapper(pal, new Set([X.lc.toLowerCase()]));
     const groups = [];
     (spec.art || '').split(';').forEach(tok => {
