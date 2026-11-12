@@ -50,7 +50,8 @@
 
   /* ---------- navigation ---------- */
   function go(tab) {
-    if (resultOpen) closeResult();
+    if (destOpen) closeDest(true);
+    if (resultOpen) closeResult(true);
     state.tab = tab; $('#app').dataset.tab = tab;
     $('#tabbar').style.setProperty('--i', ['home', 'places', 'create', 'coll'].indexOf(tab));
     $$('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + tab));
@@ -301,7 +302,7 @@
     const seasonKeys = ['printemps', 'ete', 'automne', 'hiver'];
     const mom = { jour: ['☀️', 'Journée'], soir: ['🌙', 'Soirée'], 'jour & soir': ['🌗', 'Jour & soir'] }[st.moment];
     const rel = relatedScenes(comp);
-    return `<div class="res-hero"><div class="art-bg" id="heroArt">${Art.scene(comp.spec)}</div><div class="res-top"><button class="round" id="rBack" aria-label="Retour">←</button><span></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
+    return `<div class="res-hero"><div class="art-bg" id="heroArt">${Art.scene(comp.spec)}</div><div class="res-top"><button class="round" id="rBack" aria-label="Retour">←</button><span class="top-actions"><button class="pill" id="rMix">Variation</button><button class="pill" id="rShare">Partager</button></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
       `<div class="res-bottle">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</div>` +
       `<div class="res-title"><div class="badge">${catLabel}</div><h1>${comp.name}</h1><p class="tg">${tag}</p><span class="accord">${comp.accord}</span></div>` +
       `<section class="sec rv"><h2>L'histoire</h2><div class="story"><p>${comp.story}</p>${tags.length ? `<div class="tags">${tags.map(t => `<span>${t}</span>`).join('')}</div>` : ''}</div></section>` +
@@ -318,7 +319,7 @@
     wrap.hidden = false; wrap.setAttribute('aria-hidden', 'false');
     sc.innerHTML = resultHTML(comp); sc.scrollTop = 0;
     sc.classList.toggle('reveal', !!reveal);
-    $('#resBar').innerHTML = `<button class="btn soft${isSaved(comp.key) ? ' on' : ''}" id="rSave">${isSaved(comp.key) ? 'Gardé' : 'Garder'}</button><button class="btn soft" id="rMix">Variation</button><button class="btn primary" id="rShare">Partager</button>`;
+    $('#resBar').innerHTML = `<button class="btn soft${isSaved(comp.key) ? ' on' : ''}" id="rSave">${isSaved(comp.key) ? 'Gardé' : 'Garder'}</button><button class="btn primary" id="rDest">Découvrir ma destination</button>`;
     lazyArt(sc);
     void wrap.offsetWidth; wrap.classList.add('show');
     if (!resultOpen) { try { history.pushState({ r: 1 }, ''); } catch (e) { /* ignore */ } resultOpen = true; }
@@ -332,6 +333,7 @@
     $('#rSave').onclick = e => { toggleSave(comp); const b = e.currentTarget; b.classList.toggle('on', isSaved(comp.key)); b.textContent = isSaved(comp.key) ? 'Gardé' : 'Garder'; vibrate(15); };
     $('#rShare').onclick = () => share(comp);
     $('#rMix').onclick = () => remix(comp);
+    $('#rDest').onclick = () => openDest(comp);
     $$('.ncard', sc).forEach(b => b.addEventListener('click', () => openSheet(b.dataset.note, comp)));
     if (reveal) setTimeout(() => confetti(comp), 1500);
   }
@@ -346,7 +348,8 @@
     closeSheet();
     if (!fromPop && history.state && history.state.r) { try { history.back(); } catch (e) { /* ignore */ } }
   }
-  window.addEventListener('popstate', () => { if (!$('#sheetWrap').hidden) closeSheet(); if (resultOpen) closeResult(true); });
+  let skipPop = 0;
+  window.addEventListener('popstate', () => { if (skipPop) { skipPop--; return; } if (!$('#sheetWrap').hidden) { closeSheet(); return; } if (destOpen) { closeDest(true); return; } if (resultOpen) closeResult(true); });
   function confetti(comp) {
     const wrap = $('#result'); if (wrap.hidden) return;
     const r = $('.res-bottle', wrap); if (!r) return;
@@ -377,11 +380,65 @@
   }
   async function share(comp) {
     const L = l => comp.byLayer[l].map(n => `${n.n} ${n.pct}%`).join(', ');
-    const text = `${comp.emoji || '✨'} ${comp.name} — ${comp.accord}\n\nTête : ${L('T')}\nCœur : ${L('C')}\nFond : ${L('F')}\n\nComposé avec Voyage des Sens`;
+    const dst = E.destinations(comp)[0].d;
+    const text = `${comp.name} — ${comp.accord}\n\nTête : ${L('T')}\nCœur : ${L('C')}\nFond : ${L('F')}\n\nMa destination : ${dst.n} (${dst.c})\n\nComposé avec Voyage des Sens`;
     try {
       if (navigator.share) { await navigator.share({ title: comp.name, text }); return; }
       await navigator.clipboard.writeText(text); toast('Formule copiée dans le presse-papiers');
     } catch (e) { if (e && e.name !== 'AbortError') toast('Partage indisponible sur cet appareil'); }
+  }
+
+  /* ---------- destination ---------- */
+  let destOpen = false, destComp = null, destList = [], destIdx = 0;
+  const lst = a => a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' et ' + a[a.length - 1];
+  const tagLabel = t => (VS.MOODS.find(m => m[0] === t) || VS.DIRECTIONS.find(m => m[0] === t) || [0, t])[1].toLowerCase();
+  function destHTML(comp, list, idx) {
+    const x = list[idx], d = x.d, sc = SCENE[d.art];
+    const spec = { id: 'd' + d.id, pal: sc.pal, art: sc.art, n: d.n };
+    const hitNames = x.hits.map(id => NOTES[id].n.toLowerCase());
+    const famNames = d.fams.filter(f => comp.families.some(c => c.f === f)).map(f => FAM[f].n.toLowerCase());
+    const amb = lst(d.tags.slice(0, 3).map(tagLabel));
+    const why = hitNames.length
+      ? `Ta formule contient ${lst(hitNames)} : des senteurs qu'on respire partout à ${d.n}. Son accord ${comp.accord.toLowerCase()} rejoint l'ambiance ${amb} du lieu.`
+      : famNames.length
+        ? `Ton accord ${comp.accord.toLowerCase()} retrouve à ${d.n} les notes ${lst(famNames)} qui dominent l'air du lieu, dans une ambiance ${amb}.`
+        : `L'ambiance ${amb} de ${d.n} est celle que ton parfum dessine.`;
+    const chips = d.notes.map(id => `<span class="${comp.ids.includes(id) ? 'on' : ''}">${NOTES[id].e} ${NOTES[id].n}</span>`).join('');
+    const others = list.map((o, i) => [o, i]).filter(([, i]) => i !== idx).slice(0, 4);
+    return `<div class="res-hero"><div class="art-bg" id="destArt">${Art.scene(spec)}</div><div class="res-top"><button class="round" id="dBack" aria-label="Retour">←</button><span></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
+      `<div class="res-title" style="padding-top:8px"><div class="badge">Ta destination · ${d.c}</div><h1>${d.n}</h1><p class="tg">${d.tag}</p><span class="accord">${x.aff} % d'affinité olfactive</span></div>` +
+      `<section class="sec rv"><h2>Pourquoi ici</h2><div class="story"><p>${d.txt} ${why}</p></div></section>` +
+      `<section class="sec rv"><h2>Ce que tu y respireras</h2><p class="sub">Les notes en couleur sont déjà dans ta formule.</p><div class="dn">${chips}</div></section>` +
+      `<section class="sec rv"><h2>Bon à savoir</h2><div class="sig2" style="margin-top:0"><div class="box"><h4>Quand partir</h4><div class="moment" style="font-size:19px">${d.when}</div></div><div class="box"><h4>Durée idéale</h4><div class="moment" style="font-size:19px">${d.dur}</div></div></div><div class="box" style="margin-top:12px"><h4>Ambiance</h4><div class="tags" style="margin-top:0">${d.tags.map(t => `<span>${tagLabel(t)}</span>`).join('')}</div></div></section>` +
+      `<section class="sec"><h2 class="rv">Ton itinéraire olfactif</h2><p class="sub rv">Trois moments à respirer.</p><div class="stops rv">${d.stops.map((s, i) => `<div class="stop" style="--d:${(.2 + i * .25).toFixed(2)}s"><b>${s.t}</b><span>${s.o}</span></div>`).join('')}</div></section>` +
+      `<section class="sec rv"><h2>Autres idées de voyage</h2><div class="rel">${others.map(([o, i]) => `<button class="hcard" data-di="${i}"><div class="pic"><div class="art-w" data-art="${o.d.art}"></div></div><b>${o.d.n}</b><small>${o.d.c} · ${o.aff} %</small></button>`).join('')}</div></section>`;
+  }
+  function swapDest(sc) { vibrate(10); sc.classList.add('swap'); setTimeout(() => { renderDest(true); sc.classList.remove('swap'); }, 380); }
+  function renderDest(reveal) {
+    const sc = $('#destScroll'), d = destList[destIdx].d;
+    sc.innerHTML = destHTML(destComp, destList, destIdx); sc.scrollTop = 0;
+    sc.classList.toggle('reveal', !!reveal);
+    $('#destBar').innerHTML = `<button class="btn soft" id="dNext">Autre destination</button><a class="btn primary" id="dMap" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${d.lat}&mlon=${d.lon}#map=8/${d.lat}/${d.lon}">Voir sur la carte</a>`;
+    lazyArt(sc);
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { root: sc, threshold: .12 });
+    $$('.rv', sc).forEach(el => io.observe(el));
+    const art = $('#destArt'); let tick = false;
+    sc.onscroll = () => { if (tick) return; tick = true; requestAnimationFrame(() => { const y = sc.scrollTop; if (y < 700) art.style.transform = `translateY(${y * .38}px) scale(${1 + y / 2200})`; tick = false; }); };
+    $('#dBack').onclick = () => closeDest();
+    $('#dNext').onclick = () => { destIdx = (destIdx + 1) % Math.min(4, destList.length); swapDest(sc); };
+    $$('[data-di]', sc).forEach(b => b.addEventListener('click', () => { destIdx = +b.dataset.di; swapDest(sc); }));
+  }
+  function openDest(comp) {
+    destComp = comp; destList = E.destinations(comp); destIdx = 0;
+    const w = $('#dest'); w.hidden = false; w.setAttribute('aria-hidden', 'false');
+    renderDest(true); void w.offsetWidth; w.classList.add('show'); vibrate([10, 30, 10]);
+    if (!destOpen) { try { history.pushState({ d: 1 }, ''); } catch (e) { /* ignore */ } destOpen = true; }
+  }
+  function closeDest(fromPop) {
+    if (!destOpen) return;
+    destOpen = false; const w = $('#dest'); w.classList.remove('show'); w.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { if (!destOpen) { w.hidden = true; $('#destScroll').innerHTML = ''; } }, 1300);
+    if (!fromPop && history.state && history.state.d) { try { skipPop++; history.back(); } catch (e) { /* ignore */ } }
   }
 
   /* ---------- fiche d'une note ---------- */

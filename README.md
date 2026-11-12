@@ -15,11 +15,12 @@ Sur téléphone : « Ajouter à l'écran d'accueil » pour l'installer (le servi
 
 ## Contenu
 
-- **83 lieux préfaits** : Intérieurs (chalet, bibliothèque, hôpital, gare, école…), Particuliers (station-service,
+- **111 lieux préfaits** : Intérieurs (chalet, bibliothèque, hôpital, gare, école…), Particuliers (station-service,
   fête foraine, cirque, ferme…), Voyage (marché oriental, volcan, jungle, pizzeria new-yorkaise…) et Souvenirs.
 - **549 senteurs** réparties en 18 familles (hespéridés, floraux, boisés, gourmands, marins, minéraux, boissons & sirops, confiseries…) : cola, grenadine, chips paprika, pop-corn, barbe à papa, violette, caramel, cuir….
 - **Création sur mesure** : texte libre, directions (nostalgie, découverte, voyage, exotisme), 18 ambiances,
   senteurs au choix, richesse de la formule.
+- **70 destinations réelles** (Chamonix, Marrakech, Kyoto, Bora Bora, La Havane…) : chaque parfum reçoit la destination dont l'air lui ressemble le plus, avec un bouton « Découvrir ma destination » (affinité olfactive, itinéraire en trois moments, période, carte) et un bouton « Autre destination ».
 - Collection locale, variation d'un parfum, partage de la formule.
 
 ## Cohérence des formules
@@ -39,7 +40,8 @@ node tools/validate.js    # vérifie ids, couches, pourcentages, motifs d'illust
 | --- | --- |
 | `js/notes_extra.js` | boissons, sirops, chips, snacks, confiseries, pâtisseries, fleurs, quotidien |
 | `js/notes.js` | familles, ambiances, règles d'accords, 549 notes |
-| `js/scenes.js` | 83 lieux (palette, illustration, notes) |
+| `js/scenes.js` | 111 lieux (palette, illustration, notes) |
+| `js/destinations.js` | 70 destinations, étapes olfactives, lieu → destination |
 | `js/art.js` | moteur d'illustrations SVG animées + flacon (aucune image externe) |
 | `js/engine.js` | composition, statistiques, histoire, analyse du texte libre |
 | `js/app.js` | écrans, animation de création, résultat, collection |

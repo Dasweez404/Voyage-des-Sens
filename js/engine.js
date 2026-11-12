@@ -257,5 +257,24 @@
     return { tags: tags.slice(0, 5), dirs: dirs.slice(0, 2), picks: picks.slice(0, 3), scene: bs >= 1 ? best : null };
   }
 
-  VS.Engine = { build, fromScene, compose, analyzeText, de };
+  /* ---------- destinations : les plus proches de la formule ---------- */
+  function destinations(comp) {
+    const fam = {}; comp.families.forEach(f => fam[f.f] = f.pct);
+    const tally = {}; comp.notes.forEach(n => n.t.forEach(t => tally[t] = (tally[t] || 0) + n.pct / 100));
+    const forced = comp.sceneId && VS.SCENE_DEST[comp.sceneId];
+    const list = VS.DESTS.map(d => {
+      const fs = d.fams.reduce((a, f, i) => a + [3, 2, 1][i] * ((fam[f] || 0) / 100), 0);
+      const hits = d.notes.filter(id => comp.ids.includes(id));
+      const ts = d.tags.reduce((a, t) => a + (tally[t] || 0), 0) / Math.max(1, d.tags.length);
+      return { d, raw: fs * 7 + hits.length * 4 + ts * 10, hits, forced: d.id === forced };
+    }).sort((a, b) => (b.forced - a.forced) || (b.raw - a.raw));
+    const top = Math.max(1, list.reduce((m, x) => Math.max(m, x.raw), 0));
+    return list.slice(0, 6).map((x, i) => {
+      let aff = clamp(Math.round(78 + x.raw / top * 17 - i * 1.5), 76, 98);
+      if (x.forced) aff = Math.max(aff, 93);
+      return { d: x.d, hits: x.hits, aff };
+    });
+  }
+
+  VS.Engine = { build, fromScene, compose, analyzeText, de, destinations };
 })(typeof window !== 'undefined' ? window : globalThis);
