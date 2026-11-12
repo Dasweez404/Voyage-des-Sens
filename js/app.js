@@ -55,13 +55,13 @@
       if (ios.has(root)) return ios.get(root);
       const io = new IntersectionObserver(es => {
         let k = 0;
-        es.filter(e => e.isIntersecting).forEach(e => { e.target.style.setProperty('--d', (k++ * 120) + 'ms'); e.target.classList.add('in'); io.unobserve(e.target); });
+        es.filter(e => e.isIntersecting).forEach(e => { e.target.style.setProperty('--d', (k++ * 120) + 'ms'); e.target.classList.add('in'); const t = e.target; setTimeout(() => t.classList.add('ar-done'), 1700 + k * 120); io.unobserve(e.target); });
       }, { root, threshold: .06, rootMargin: '0px 0px -5% 0px' });
       ios.set(root, io); return io;
     }
     function watchEls(container, els) {
       const io = observerFor(container.closest('.scroll, .res-scroll') || null);
-      els.forEach(el => { el.classList.add('ar'); el.classList.remove('in'); io.observe(el); });
+      els.forEach(el => { el.classList.add('ar'); el.classList.remove('in', 'ar-done'); io.observe(el); });
     }
     function watchScreens() {
       $$('.screen .scroll').forEach(sc => watchEls(sc, Array.from(sc.children).filter(c => !c.classList.contains('pgrid') && !c.classList.contains('cgrid'))));
@@ -70,7 +70,7 @@
     function replay(screen) {
       const sc = $('.scroll', screen); if (!sc) return;
       const io = observerFor(sc);
-      $$('.ar', screen).forEach(el => { el.style.transition = 'none'; el.classList.remove('in'); void el.offsetWidth; el.style.transition = ''; io.observe(el); });
+      $$('.ar', screen).forEach(el => { el.style.transition = 'none'; el.classList.remove('in', 'ar-done'); void el.offsetWidth; el.style.transition = ''; io.observe(el); });
     }
     function splitWords(el) {
       if (!el || el.dataset.sp) return; el.dataset.sp = '1'; let i = 0;
@@ -480,16 +480,16 @@
     const seasonKeys = ['printemps', 'ete', 'automne', 'hiver'];
     const mom = { jour: ['☀️', 'Journée'], soir: ['🌙', 'Soirée'], 'jour & soir': ['🌗', 'Jour & soir'] }[st.moment];
     const rel = relatedScenes(comp);
-    return `<div class="res-hero"><div class="art-bg" id="heroArt">${Art.scene(comp.spec)}</div><div class="res-top"><button class="round" id="rBack" aria-label="Retour">←</button><span class="top-actions"><button class="pill" id="rMix">Variation</button><button class="pill" id="rShare">Partager</button></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
+    return `<div class="res-left"><div class="res-hero"><div class="art-bg" id="heroArt">${Art.scene(comp.spec)}</div><div class="res-top"><button class="round" id="rBack" aria-label="Retour">←</button><span class="top-actions"><button class="pill" id="rMix">Variation</button><button class="pill" id="rShare">Partager</button></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
       `<div class="res-bottle">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</div>` +
       `<div class="res-title"><div class="badge">${catLabel}</div><h1>${comp.name}</h1><p class="tg">${tag}</p><span class="accord">${comp.accord}</span></div>` +
-      `<section class="sec rv"><h2>L'histoire</h2>${adaptHTML(comp)}<div class="story"><p>${comp.story}</p>${tags.length ? `<div class="tags">${tags.map(t => `<span>${t}</span>`).join('')}</div>` : ''}</div></section>` +
+      `</div><div class="res-right"><section class="sec rv"><h2>L'histoire</h2>${adaptHTML(comp)}<div class="story"><p>${comp.story}</p>${tags.length ? `<div class="tags">${tags.map(t => `<span>${t}</span>`).join('')}</div>` : ''}</div></section>` +
       `<section class="sec"><h2 class="rv">Pyramide olfactive</h2><p class="sub rv">Touche une note pour la découvrir.</p>${pyr}</section>` +
       `<section class="sec rv"><h2>Palette de senteurs</h2><div class="donut-w"><div class="donut"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="15"/>${segs}</svg><div class="mid"><small>dominante</small><b>${comp.families[0].n}</b></div></div><div class="leg">${legend}</div></div></section>` +
       `<section class="sec rv"><h2>Signature</h2><div class="gauges"><div class="g"><div class="row"><span>Intensité</span><b>${st.intensity} / 10</b></div><div class="track"><div class="fill" style="--w:${st.intensity * 10}%"></div></div></div><div class="g"><div class="row"><span>Tenue</span><b>≈ ${st.hours} h</b></div><div class="track"><div class="fill" style="--w:${Math.round(st.hours / 14 * 100)}%"></div></div></div><div class="g"><div class="row"><span>Sillage</span><b>${st.sillage}</b></div><div class="track"><div class="fill" style="--w:${st.sillageV}%"></div></div></div></div>` +
       `<div class="sig2"><div class="box"><h4>Saisons</h4><div class="seasons">${seasonKeys.map(k => `<span class="${st.best.includes(k) ? 'on' : ''}">${SEASON[k][1]}</span>`).join('')}</div></div><div class="box"><h4>Moment</h4><div class="moment">${mom[1]}</div></div></div>` +
       `<div class="box" style="margin-top:12px"><h4>Cohérence de l'accord</h4><div class="harm"><div class="ring"><svg viewBox="0 0 80 80"><circle class="tr" cx="40" cy="40" r="34"/><circle class="pg" cx="40" cy="40" r="34" style="--hd:${(st.harmony / 100 * 213.6).toFixed(1)}"/></svg><b data-count="${st.harmony}" data-suf="%">0%</b></div><p>Les familles de cette formule s'accordent entre elles&nbsp;: aucune note ne vient contredire l'ensemble.</p></div></div></section>` +
-      `<section class="sec rv"><h2>Dans la même veine</h2><div class="rel">${rel.map(s => `<button class="hcard" data-sc="${s.id}"><div class="pic"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span></div><b>${s.n}</b></button>`).join('')}</div></section>`;
+      `<section class="sec rv"><h2>Dans la même veine</h2><div class="rel">${rel.map(s => `<button class="hcard" data-sc="${s.id}"><div class="pic"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span></div><b>${s.n}</b></button>`).join('')}</div></section></div>`;
   }
   function openResult(comp, reveal) {
     current = comp;
@@ -507,7 +507,7 @@
     $$('.rv', sc).forEach(el => io.observe(el));
     // parallaxe
     const art = $('#heroArt'); let tick = false;
-    sc.onscroll = () => { if (tick) return; tick = true; requestAnimationFrame(() => { const y = sc.scrollTop; if (y < 700) art.style.transform = `translateY(${y * .38}px) scale(${1 + y / 2200})`; tick = false; }); };
+    sc.onscroll = () => { if (tick) return; tick = true; requestAnimationFrame(() => { const y = sc.scrollTop; if (y < 700 && !document.documentElement.classList.contains('desktop')) art.style.transform = `translateY(${y * .38}px) scale(${1 + y / 2200})`; tick = false; }); };
     $('#rBack').onclick = () => closeResult();
     $('#rSave').onclick = e => { toggleSave(comp); const b = e.currentTarget; b.classList.toggle('on', isSaved(comp.key)); b.textContent = isSaved(comp.key) ? 'Gardé' : 'Garder'; vibrate(15); };
     $('#rShare').onclick = () => share(comp);
@@ -584,13 +584,13 @@
         : `L'ambiance ${amb} de ${d.n} est celle que ton parfum dessine.`;
     const chips = d.notes.map(id => `<span class="${comp.ids.includes(id) ? 'on' : ''}">${NOTES[id].e} ${NOTES[id].n}</span>`).join('');
     const others = list.map((o, i) => [o, i]).filter(([, i]) => i !== idx).slice(0, 4);
-    return `<div class="res-hero"><div class="art-bg" id="destArt">${Art.scene(spec)}</div><div class="res-top"><button class="round" id="dBack" aria-label="Retour">←</button><span></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
+    return `<div class="res-left"><div class="res-hero"><div class="art-bg" id="destArt">${Art.scene(spec)}</div><div class="res-top"><button class="round" id="dBack" aria-label="Retour">←</button><span></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
       `<div class="res-title" style="padding-top:8px"><div class="badge">Ta destination · ${d.c}</div><h1>${d.n}</h1><p class="tg">${d.tag}</p><span class="accord">${x.aff} % d'affinité olfactive</span></div>` +
-      `<section class="sec rv"><h2>Pourquoi ici</h2><div class="story"><p>${d.txt} ${why}</p></div></section>` +
+      `</div><div class="res-right"><section class="sec rv"><h2>Pourquoi ici</h2><div class="story"><p>${d.txt} ${why}</p></div></section>` +
       `<section class="sec rv"><h2>Ce que tu y respireras</h2><p class="sub">Les notes en couleur sont déjà dans ta formule.</p><div class="dn">${chips}</div></section>` +
       `<section class="sec rv"><h2>Bon à savoir</h2><div class="sig2" style="margin-top:0"><div class="box"><h4>Quand partir</h4><div class="moment" style="font-size:19px">${d.when}</div></div><div class="box"><h4>Durée idéale</h4><div class="moment" style="font-size:19px">${d.dur}</div></div></div><div class="box" style="margin-top:12px"><h4>Ambiance</h4><div class="tags" style="margin-top:0">${d.tags.map(t => `<span>${tagLabel(t)}</span>`).join('')}</div></div></section>` +
       `<section class="sec"><h2 class="rv">Ton itinéraire olfactif</h2><p class="sub rv">Trois moments à respirer.</p><div class="stops rv">${d.stops.map((s, i) => `<div class="stop" style="--d:${(.2 + i * .25).toFixed(2)}s"><b>${s.t}</b><span>${s.o}</span></div>`).join('')}</div></section>` +
-      `<section class="sec rv"><h2>Autres idées de voyage</h2><div class="rel">${others.map(([o, i]) => `<button class="hcard" data-di="${i}"><div class="pic"><div class="art-w" data-art="${o.d.art}"></div></div><b>${o.d.n}</b><small>${o.d.c} · ${o.aff} %</small></button>`).join('')}</div></section>`;
+      `<section class="sec rv"><h2>Autres idées de voyage</h2><div class="rel">${others.map(([o, i]) => `<button class="hcard" data-di="${i}"><div class="pic"><div class="art-w" data-art="${o.d.art}"></div></div><b>${o.d.n}</b><small>${o.d.c} · ${o.aff} %</small></button>`).join('')}</div></section></div>`;
   }
   function swapDest(sc) { vibrate(10); sc.classList.add('swap'); setTimeout(() => { renderDest(true); sc.classList.remove('swap'); }, 380); }
   function renderDest(reveal) {
@@ -603,7 +603,7 @@
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { root: sc, threshold: .12 });
     $$('.rv', sc).forEach(el => io.observe(el));
     const art = $('#destArt'); let tick = false;
-    sc.onscroll = () => { if (tick) return; tick = true; requestAnimationFrame(() => { const y = sc.scrollTop; if (y < 700) art.style.transform = `translateY(${y * .38}px) scale(${1 + y / 2200})`; tick = false; }); };
+    sc.onscroll = () => { if (tick) return; tick = true; requestAnimationFrame(() => { const y = sc.scrollTop; if (y < 700 && !document.documentElement.classList.contains('desktop')) art.style.transform = `translateY(${y * .38}px) scale(${1 + y / 2200})`; tick = false; }); };
     $('#dBack').onclick = () => closeDest();
     $('#dNext').onclick = () => { destIdx = (destIdx + 1) % Math.min(4, destList.length); swapDest(sc); };
     $$('[data-di]', sc).forEach(b => b.addEventListener('click', () => { destIdx = +b.dataset.di; swapDest(sc); }));
@@ -658,6 +658,7 @@
   function updateExclUI() {
     const g = prefs.allergies.length + prefs.fams.length + prefs.notes.length, n = VS.EXCL.size;
     const b = $('#prefBadge'); b.hidden = !g; b.textContent = g;
+    const sb = $('#sidePrefBadge'); sb.hidden = !g; sb.textContent = g;
     const row = $('#exclRow'); row.classList.toggle('on', g > 0);
     row.innerHTML = g ? `<span><b>${n}</b> senteurs écartées de tes parfums</span><i>Modifier</i>` : `<span>Allergies, odeurs que tu ne supportes pas…</span><i>Définir</i>`;
   }
@@ -717,7 +718,49 @@
     renderPlaces(); renderMacros(); renderNotes(); refreshTray(); refreshSugg(); sync();
   }
   $('#btnPrefs').addEventListener('click', openPrefs);
+  $('#sidePrefs').addEventListener('click', openPrefs);
   $('#exclRow').addEventListener('click', openPrefs);
+
+  /* ---------- ordinateur : détection automatique, clavier, souris ---------- */
+  (function desktop() {
+    const mq = window.matchMedia('(min-width: 960px)');
+    const apply = () => document.documentElement.classList.toggle('desktop', mq.matches);
+    apply(); mq.addEventListener ? mq.addEventListener('change', apply) : mq.addListener(apply);
+    // clavier : Échap ferme la couche du dessus, / cherche, 1-4 changent d'onglet
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        if (!$('#sheetWrap').hidden) closeSheet(); else if (prefsOpen) closePrefs(); else if (destOpen) closeDest(); else if (resultOpen) closeResult(); else if (labAbort) labAbort();
+        return;
+      }
+      if (e.target.matches && e.target.matches('input,textarea')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === '/' && (state.tab === 'places' || state.tab === 'create') && !resultOpen && !destOpen && !prefsOpen) { e.preventDefault(); $(state.tab === 'create' ? '#noteSearch' : '#placeSearch').focus(); return; }
+      const n = ['1', '2', '3', '4'].indexOf(e.key);
+      if (n >= 0 && !resultOpen && !destOpen && !prefsOpen && $('#lab').hidden) go(['home', 'places', 'create', 'coll'][n]);
+    });
+    // glisser à la souris dans les carrousels et rangées de puces
+    let el = null, x0 = 0, s0 = 0, moved = 0;
+    document.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      const t = e.target.closest('.hscroll, .rel, .chips.scrollx'); if (!t || t.scrollWidth <= t.clientWidth) return;
+      el = t; x0 = e.clientX; s0 = t.scrollLeft; moved = 0; t.style.scrollSnapType = 'none'; t.style.scrollBehavior = 'auto';
+    });
+    window.addEventListener('pointermove', e => { if (!el) return; const dx = e.clientX - x0; moved = Math.max(moved, Math.abs(dx)); el.scrollLeft = s0 - dx; });
+    window.addEventListener('pointerup', () => {
+      if (!el) return; const t = el; el = null; t.style.scrollSnapType = ''; t.style.scrollBehavior = '';
+      if (moved > 6) t.addEventListener('click', ev => { ev.stopPropagation(); ev.preventDefault(); }, { capture: true, once: true });
+    });
+    // le décor suit très doucement le pointeur
+    if (window.matchMedia('(pointer: fine)').matches && !reduce) {
+      const app = $('#app'); let tick = false, x = 0, y = 0;
+      window.addEventListener('pointermove', e => {
+        if (e.pointerType !== 'mouse') return;
+        x = e.clientX / innerWidth * 2 - 1; y = e.clientY / innerHeight * 2 - 1;
+        if (tick) return; tick = true;
+        requestAnimationFrame(() => { app.style.setProperty('--mx', x.toFixed(3)); app.style.setProperty('--my', y.toFixed(3)); tick = false; });
+      }, { passive: true });
+    }
+  })();
 
   /* ---------- écran d'ouverture ---------- */
   function splash() {
