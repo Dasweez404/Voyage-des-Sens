@@ -1,6 +1,6 @@
 /* Service worker — fonctionne entièrement hors-ligne (réseau d'abord) */
-const CACHE = 'vds-2611121502';
-const ASSETS = ['./', 'index.html', 'css/style.css?v=2611121502', 'js/notes_extra.js?v=2611121502', 'js/notes.js?v=2611121502', 'js/scenes.js?v=2611121502', 'js/destinations.js?v=2611121502', 'js/eo.js?v=2611121502', 'js/prefs.js?v=2611121502', 'js/bottlegl.js?v=2611121502', 'js/bottle3d.js?v=2611121502', 'js/art.js?v=2611121502', 'js/engine.js?v=2611121502', 'js/quiz.js?v=2611121502', 'js/app.js?v=2611121502',
+const CACHE = 'vds-2611121523';
+const ASSETS = ['./', 'index.html', 'css/style.css?v=2611121523', 'js/notes_extra.js?v=2611121523', 'js/notes.js?v=2611121523', 'js/scenes.js?v=2611121523', 'js/destinations.js?v=2611121523', 'js/eo.js?v=2611121523', 'js/prefs.js?v=2611121523', 'js/bottlegl.js?v=2611121523', 'js/bottle3d.js?v=2611121523', 'js/art.js?v=2611121523', 'js/engine.js?v=2611121523', 'js/quiz.js?v=2611121523', 'js/app.js?v=2611121523',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

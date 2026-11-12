@@ -125,6 +125,8 @@ let BASE;
   await p.click('#tabbar [data-go=places]'); await p.waitForTimeout(1400); await p.click('#s-places [data-sc]'); await p.waitForTimeout(1500); await p.click('#labSkip');
   await p.waitForSelector('#result.show', { timeout: 15000 }); await p.waitForTimeout(2500);
   ok(!!(await p.$('.res-bottle .b3w canvas')), 'la page résultat affiche le flacon liquide');
+  ok(!!(await p.$('.res-bottle .gl-ctl input[type=range]')) && !!(await p.$('.res-bottle .gl-ctl button')), 'commandes « Secouer » et « Force » présentes');
+  await p.evaluate(() => document.querySelector('.res-bottle .gl-ctl button').click()); await p.waitForTimeout(600);
   const bb = await p.$eval('.res-bottle .b3w', e => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
   const png = await p.screenshot({ clip: bb });
   ok(png.length > 6000, 'le flacon liquide est bien dessiné (' + png.length + ' o)');

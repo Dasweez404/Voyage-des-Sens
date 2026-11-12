@@ -10,7 +10,7 @@
   const FRAG = `precision highp float;
 uniform vec2 uRes;uniform float uTime,uRotY,uCap;
 uniform vec3 uColT,uColC,uColF,uLvl;
-uniform vec2 uTilt;uniform vec2 uRip;uniform vec2 uView;
+uniform float uM[8];uniform vec2 uRip;uniform vec2 uView;
 uniform sampler2D uLab;
 float sdRBox(vec3 p,vec3 b,float r){vec3 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)-r;}
 float sdCyl(vec3 p,float r,float h){vec2 d=abs(vec2(length(p.xz),p.y))-vec2(r,h);return min(max(d.x,d.y),0.)+length(max(d,0.));}
@@ -20,10 +20,13 @@ float gold(vec3 p){float lift=(1.-uCap)*(.30+.03*sin(uTime*1.6));float c=sdRBox(
 float cav(vec3 p){return sdRBox(p-vec3(0.,-.09,0.),vec3(.43,.53,.43),.09);}
 float wave(vec2 xz,float k,float ph){
   float t=uTime;
-  float w=sin(xz.x*6.+t*1.5+ph)*.010+sin(xz.y*5.-t*1.2+ph*1.7)*.008+sin((xz.x+xz.y)*9.+t*2.1)*.004;
+  vec2 u=(xz+.43)/.86*3.14159265;
+  float cx1=cos(u.x),cx2=cos(2.*u.x),cx3=cos(3.*u.x),cz1=cos(u.y),cz2=cos(2.*u.y);
+  float md=uM[0]*cx1+uM[1]*cz1+uM[2]*cx1*cz1+uM[3]*cx2+uM[4]*cz2+uM[5]*cx2*cz1+uM[6]*cx1*cz2+uM[7]*cx3;
+  float w=sin(xz.x*6.+t*1.5+ph)*.003+sin(xz.y*5.-t*1.2+ph*1.7)*.0025;
   float r=length(xz);
   float rip=uRip.y*sin(r*26.-uRip.x*9.)*exp(-r*3.5)*exp(-uRip.x*1.6)*step(0.,uRip.x);
-  return (w+rip)*k+dot(xz,uTilt);
+  return (w+rip+md)*k;
 }
 float liq(vec3 p){return max(cav(p),p.y-(uLvl.z+wave(p.xz,1.,0.)));}
 vec3 layerCol(vec3 p){
@@ -102,10 +105,15 @@ void main(){
   gl_FragColor=vec4(col,al);
 }`;
 
-  const NAMES = ['uRes', 'uTime', 'uRotY', 'uCap', 'uColT', 'uColC', 'uColF', 'uLvl', 'uTilt', 'uRip', 'uView', 'uLab'];
+  const NAMES = ['uRes', 'uTime', 'uRotY', 'uCap', 'uColT', 'uColC', 'uColF', 'uLvl', 'uM', 'uRip', 'uView', 'uLab'];
   const hex = c => { c = c.replace('#', ''); const n = parseInt(c.length === 3 ? c.split('').map(x => x + x).join('') : c, 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; };
   const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
   const Y0 = -.62, HMAX = .9, FILL = .86;
+  // modes de ressac [m, n] ; pulsation du mode (1,0) : c·π / largeur de la cavité
+  const MODES = [[1, 0], [0, 1], [1, 1], [2, 0], [0, 2], [2, 1], [1, 2], [3, 0]], OM = 3.6, KF = .05;
+  const OMG = MODES.map(m => OM * Math.sqrt(m[0] * m[0] + m[1] * m[1])), GAM = OMG.map(w => .9 + .3 * w / OM);
+  // force du liquide (réglable à la main) : 0 = presque immobile, 1 = très vif
+  let force = .5; try { const v = parseFloat(localStorage.getItem('vs.glf')); if (v >= 0 && v <= 1) force = v; } catch (e) { /* ignore */ }
 
   let supported = null;
   function ok() {
@@ -160,14 +168,28 @@ void main(){
     const S = { p: lab ? { F: 0, C: 0, T: 0 } : { F: 1, C: 1, T: 1 }, cap: lab ? 0 : 1 };
     const tw = [];                                       // animations en cours : { k, to, t0, d }
     const tween = (obj, k, to, d) => { const i = tw.findIndex(x => x.obj === obj && x.k === k); if (i >= 0) tw.splice(i, 1); tw.push({ obj, k, from: obj[k], to, t0: performance.now(), d }); };
-    let ry = -.42, vel = 0, drag = false, lx = 0, tilt = [0, 0], tv = [0, 0], rip0 = -1e9, ripAmp = 0, scale = Math.min(window.devicePixelRatio || 1, 1.6), slow = 0, frames = 0, tPrev = performance.now(), visible = true, dead = false;
+    const A = new Float32Array(8), V = new Float32Array(8), pulses = [];
+    let pv = 0, pvT = 0, lastMove = 0, pvPrev = 0;
+    let ry = -.42, vel = 0, drag = false, lx = 0, rip0 = -1e9, ripAmp = 0, scale = Math.min(window.devicePixelRatio || 1, 1.6), slow = 0, frames = 0, tPrev = performance.now(), visible = true, dead = false;
     const api = {
       rise(L) { tween(S.p, L, 1, reduce ? 300 : 2600); },
-      drop(L) { rip0 = performance.now(); ripAmp = .9; },
+      drop(L) { rip0 = performance.now(); ripAmp = .9; V[3] += .5; V[4] += .5; },
+      shake() {                                           // trois impulsions qui s'inversent : le liquide va et vient et cogne les parois
+        const a = Math.random() * 6.283, now = performance.now(), M = 1 + 7 * force;
+        [[0, 1], [280, -.8], [560, .5], [820, -.3]].forEach(([d, g]) => pulses.push({ t0: now + d, ax: Math.cos(a) * M * g, az: Math.sin(a) * M * g }));
+        for (let i = 2; i < 7; i++) V[i] += (Math.random() - .5) * .9 * force;
+      },
+      setForce(f) { force = f; },
       close() { tween(S, 'cap', 1, reduce ? 300 : 2200); },
       fillAll() { ['F', 'C', 'T'].forEach(L => tween(S.p, L, 1, 900)); tween(S, 'cap', 1, 900); }
     };
     el._api = api;
+    const ctl = document.createElement('div'); ctl.className = 'gl-ctl';
+    ctl.innerHTML = `<button class="pill" type="button">Secouer</button><label><span>Force</span><input type="range" min="0" max="100" step="1" value="${Math.round(force * 100)}" aria-label="Force du liquide"><output>${Math.round(force * 100)}</output></label>`;
+    el.insertAdjacentElement('afterend', ctl);
+    const rng = ctl.querySelector('input'), out = ctl.querySelector('output');
+    rng.addEventListener('input', () => { force = rng.value / 100; out.textContent = rng.value; try { localStorage.setItem('vs.glf', String(force)); } catch (e) { /* ignore */ } });
+    ctl.querySelector('button').addEventListener('click', () => api.shake());
     function size() {
       const w = Math.max(40, el.clientWidth), h = Math.max(52, el.clientHeight || w * 1.3);
       cv.width = Math.round(w * scale); cv.height = Math.round(h * scale); gl.viewport(0, 0, cv.width, cv.height);
@@ -176,9 +198,8 @@ void main(){
     if (window.ResizeObserver) new ResizeObserver(size).observe(el);   // le laboratoire est monté avant d'être affiché
     el.addEventListener('pointerdown', e => { drag = true; lx = e.clientX; vel = 0; try { el.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ } el.classList.add('grab'); });
     el.addEventListener('pointermove', e => {
-      if (!drag) return; const dx = e.clientX - lx; lx = e.clientX; ry += dx * .011; vel = dx * .011;
-      const rx = Math.cos(ry), rz = -Math.sin(ry);       // la droite de l'écran, dans le repère du flacon : le liquide « traîne »
-      tv[0] -= dx * .0016 * rx; tv[1] -= dx * .0016 * rz;
+      if (!drag) return; const dx = e.clientX - lx, dts = Math.max(.008, (e.timeStamp - lastMove) / 1000); lx = e.clientX; lastMove = e.timeStamp; ry += dx * .011; vel = dx * .011;
+      pvT = Math.max(-2500, Math.min(2500, dx / dts));   // vitesse du doigt : son accélération fait bouger le liquide
     });
     const up = () => { drag = false; el.classList.remove('grab'); };
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
@@ -191,15 +212,30 @@ void main(){
       const dt = Math.min(.05, (now - tPrev) / 1000); tPrev = now;
       // animations
       for (let i = tw.length - 1; i >= 0; i--) { const a = tw[i], k = (now - a.t0) / a.d; a.obj[a.k] = a.from + (a.to - a.from) * ease(k); if (k >= 1) tw.splice(i, 1); }
-      // rotation, balancement et ressac du liquide (ressort amorti)
+      // rotation, balancement
       if (!drag) { ry += vel; vel *= .95; }
-      const sway = reduce || drag ? 0 : Math.sin((now - t0) / 2900) * .24, swayV = reduce || drag ? 0 : Math.cos((now - t0) / 2900) * .24 / 2900 * 1000;
-      if (!drag && !reduce) { tv[0] -= swayV * dt * .18 * Math.cos(ry + sway); tv[1] += swayV * dt * .18 * Math.sin(ry + sway); }
-      for (let k = 0; k < 2; k++) { tv[k] += (-tilt[k] * 38 - tv[k] * 3.4) * dt; tilt[k] += tv[k] * dt; tilt[k] = Math.max(-.26, Math.min(.26, tilt[k])); }
+      const sway = reduce || drag ? 0 : Math.sin((now - t0) / 2900) * .24, swayA = reduce || drag ? 0 : -Math.sin((now - t0) / 2900) * .24 * 1.2;
+      // ressac : modes stationnaires (parois = nœuds de vitesse, ventres de hauteur) forcés par l'accélération du flacon
+      pv += (pvT - pv) * .45; pvT *= drag ? .8 : .5;
+      const acc = (pv - pvPrev) / Math.max(dt, .008); pvPrev = pv;
+      const th = ry + sway, G = .00042 * force * 2;
+      let ax = acc * Math.cos(th) * G + swayA * .05 * force, az = -acc * Math.sin(th) * G;
+      pulses.forEach(p => { const k = (now - p.t0) / 1000; if (k >= 0 && k < .2) { ax += p.ax; az += p.az; } });
+      for (let i = pulses.length - 1; i >= 0; i--) if (now - pulses[i].t0 > 400) pulses.splice(i, 1);
+      ax = Math.max(-9, Math.min(9, ax)); az = Math.max(-9, Math.min(9, az));
+      const LIM = .05 + .13 * Math.min(1, .35 + force);
+      for (let n = 0; n < 4; n++) {
+        const h = dt / 4;
+        for (let i = 0; i < 8; i++) {
+          const f = i === 0 ? ax : i === 1 ? az : i === 7 ? ax * .3 : 0;
+          V[i] += (-OMG[i] * OMG[i] * (A[i] - KF * f) - GAM[i] * V[i]) * h; A[i] += V[i] * h;
+          if (A[i] > LIM) { A[i] = LIM; if (V[i] > 0) V[i] *= -.45; } else if (A[i] < -LIM) { A[i] = -LIM; if (V[i] < 0) V[i] *= -.45; }   // la vague bute sur la paroi
+        }
+      }
       const iF = Y0 + H.F * S.p.F, iC = iF + H.C * S.p.C, iT = iC + H.T * S.p.T;
       gl.uniform2f(U.uRes, cv.width, cv.height); gl.uniform1f(U.uTime, (now - t0) / 1000); gl.uniform1f(U.uRotY, ry + sway); gl.uniform1f(U.uCap, S.cap);
       gl.uniform3f(U.uColT, cols[0][0], cols[0][1], cols[0][2]); gl.uniform3f(U.uColC, cols[1][0], cols[1][1], cols[1][2]); gl.uniform3f(U.uColF, cols[2][0], cols[2][1], cols[2][2]);
-      gl.uniform3f(U.uLvl, iF, iC, iT); gl.uniform2f(U.uTilt, tilt[0], tilt[1]);
+      gl.uniform3f(U.uLvl, iF, iC, iT); gl.uniform1fv(U.uM, A);
       gl.uniform2f(U.uRip, (now - rip0) / 1000, ripAmp); gl.uniform2f(U.uView, lab ? 1.75 : 2.05, lab ? .3 : .2);
       gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLES, 0, 3);
       // résolution adaptative : si l'appareil peine, on réduit doucement
