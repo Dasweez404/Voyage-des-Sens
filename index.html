@@ -14,6 +14,18 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="stylesheet" href="css/style.css">
+<script>
+/* Affichage ordinateur : automatique (≥ 960 px, ou ≥ 720 px avec une souris). Forçage possible : ?view=desktop | mobile | auto */
+(function () {
+  try {
+    var v = (localStorage.getItem('vs.view') || 'auto').replace(/"/g, ''), q = /[?&]view=(auto|mobile|desktop)/.exec(location.search);
+    if (q) { v = q[1]; localStorage.setItem('vs.view', v); }
+    var w = window.innerWidth, fine = window.matchMedia('(pointer: fine)').matches;
+    document.documentElement.classList.toggle('desktop', v === 'desktop' || (v === 'auto' && (w >= 960 || (w >= 720 && fine))));
+  } catch (e) { /* ignore */ }
+})();
+</script>
+
 </head>
 <body>
 <div id="app">

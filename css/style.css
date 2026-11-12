@@ -575,87 +575,101 @@ textarea::placeholder{color:#c0a191}
 /* =====================================================================
    ORDINATEUR (≥ 960 px) : détecté automatiquement, mêmes pages, autre mise en page
    ===================================================================== */
-@media (min-width:960px){
-  html,body{background:var(--bg)}
-  #app{max-width:none;height:100dvh;margin:0;border-radius:0;box-shadow:none}
-  #screens{left:268px}
+/* ORDINATEUR : activé par la classe html.desktop (posée automatiquement, ou choisie dans Préférences) */
+
+  html.desktop,html.desktop body{background:var(--bg)}
+  html.desktop #app{max-width:none;height:100dvh;margin:0;border-radius:0;box-shadow:none}
+  html.desktop #screens{left:268px}
 
   /* barre latérale */
-  #tabbar{left:20px;top:20px;bottom:20px;right:auto;width:228px;height:auto;display:flex;flex-direction:column;border-radius:32px;padding:16px 12px;transform:none!important;opacity:1!important;pointer-events:auto!important}
-  .side-brand{display:block;height:100px;padding:8px 12px 0}
-  .side-brand strong{display:block;font-family:var(--serif);font-size:27px;line-height:1.02;font-weight:600;letter-spacing:-.3px}
-  .side-brand small{display:block;margin-top:9px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);font-weight:800}
-  #tabbar .ind{top:calc(112px + var(--i,0) * 60px);bottom:auto;left:12px;right:12px;width:auto;height:54px;transform:none;transition:top .75s var(--spring)}
-  #tabbar button{display:flex;align-items:center;justify-content:flex-start;height:54px;margin-bottom:6px;padding:0 22px;font-size:15px;text-align:left;flex:none}
-  #tabbar b{top:50%;right:18px;transform:translateY(-50%)}
-  #tabbar .side-prefs{display:flex;margin:auto 0 0;color:var(--terra)}
-  #tabbar .side-prefs b{position:absolute}
-  #app.tbhide .create-bar{bottom:24px}
+  html.desktop #tabbar{left:20px;top:20px;bottom:20px;right:auto;width:228px;height:auto;display:flex;flex-direction:column;border-radius:32px;padding:16px 12px;transform:none!important;opacity:1!important;pointer-events:auto!important}
+  html.desktop .side-brand{display:block;height:100px;padding:8px 12px 0}
+  html.desktop .side-brand strong{display:block;font-family:var(--serif);font-size:27px;line-height:1.02;font-weight:600;letter-spacing:-.3px}
+  html.desktop .side-brand small{display:block;margin-top:9px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);font-weight:800}
+  html.desktop #tabbar .ind{top:calc(112px + var(--i,0) * 60px);bottom:auto;left:12px;right:12px;width:auto;height:54px;transform:none;transition:top .75s var(--spring)}
+  html.desktop #tabbar button{display:flex;align-items:center;justify-content:flex-start;height:54px;margin-bottom:6px;padding:0 22px;font-size:15px;text-align:left;flex:none}
+  html.desktop #tabbar b{top:50%;right:18px;transform:translateY(-50%)}
+  html.desktop #tabbar .side-prefs{display:flex;margin:auto 0 0;color:var(--terra)}
+  html.desktop #tabbar .side-prefs b{position:absolute}
+  html.desktop #app.tbhide .create-bar{bottom:24px}
 
   /* pages */
-  .scroll{padding:46px max(48px,calc((100% - 1120px) / 2)) 130px;scrollbar-width:thin;scrollbar-color:var(--rose) transparent}
-  .res-scroll{scrollbar-width:thin;scrollbar-color:var(--rose) transparent}
-  .page-h h2{font-size:54px}
-  .page-h p{font-size:17px;max-width:60ch}
-  .chips.scrollx{flex-wrap:wrap;overflow:visible;margin:0;padding:2px 0 8px}
-  .search{max-width:560px}
+  html.desktop .scroll{padding:46px max(48px,calc((100% - 1120px) / 2)) 130px;scrollbar-width:thin;scrollbar-color:var(--rose) transparent}
+  html.desktop .res-scroll{scrollbar-width:thin;scrollbar-color:var(--rose) transparent}
+  html.desktop .page-h h2{font-size:54px}
+  html.desktop .page-h p{font-size:17px;max-width:60ch}
+  html.desktop .chips.scrollx{flex-wrap:wrap;overflow:visible;margin:0;padding:2px 0 8px}
+  html.desktop .search{max-width:560px}
 
   /* accueil */
-  .hero{min-height:min(74vh,660px);padding-top:6vh}
-  .hero h1{font-size:clamp(58px,6vw,96px)}
-  .lead{font-size:20px;max-width:36ch}
-  .hero-art{width:580px;height:580px;right:-70px;top:-50px}
-  .hero .prefs-pill{display:none}
-  .cta-col{max-width:480px}
-  .hscroll{margin:0;padding:6px 6px 20px}
-  .hcard{flex-basis:216px}
-  .cat-tiles{grid-template-columns:repeat(4,1fr);gap:16px}
-  .ctile{min-height:160px}
-  .stats{max-width:620px}
+  html.desktop .hero{min-height:min(74vh,660px);padding-top:6vh}
+  html.desktop .hero h1{font-size:clamp(58px,6vw,96px)}
+  html.desktop .lead{font-size:20px;max-width:36ch}
+  html.desktop .hero-art{width:580px;height:580px;right:-70px;top:-50px}
+  html.desktop .hero .prefs-pill{display:none}
+  html.desktop .cta-col{max-width:480px}
+  html.desktop .hscroll{margin:0;padding:6px 6px 20px}
+  html.desktop .hcard{flex-basis:216px}
+  html.desktop .cat-tiles{grid-template-columns:repeat(4,1fr);gap:16px}
+  html.desktop .ctile{min-height:160px}
+  html.desktop .stats{max-width:620px}
 
   /* lieux et collection */
-  .pgrid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:22px}
-  .cgrid{grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:20px}
+  html.desktop .pgrid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:22px}
+  html.desktop .cgrid{grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:20px}
 
   /* création : étapes à gauche, senteurs à droite */
-  #s-create .scroll{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);column-gap:60px;align-content:start}
-  #s-create .page-h,#s-create .excl-row{grid-column:1 / -1}
-  #s-create .excl-row{justify-self:start;width:auto;min-width:400px;margin:-4px 0 28px}
-  #s-create .step{grid-column:1}
-  #s-create .step:nth-of-type(4){grid-column:2;grid-row:3 / span 4}
-  #s-create .spacer-cta{display:none}
-  .create-bar{left:max(48px,calc((100% - 1120px) / 2));right:max(48px,calc((100% - 1120px) / 2));bottom:26px}
-  .tray{top:14px}
+  html.desktop #s-create .scroll{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);column-gap:60px;align-content:start}
+  html.desktop #s-create .page-h,html.desktop #s-create .excl-row{grid-column:1 / -1}
+  html.desktop #s-create .excl-row{justify-self:start;width:auto;min-width:400px;margin:-4px 0 28px}
+  html.desktop #s-create .step{grid-column:1}
+  html.desktop #s-create .step:nth-of-type(4){grid-column:2;grid-row:3 / span 4}
+  html.desktop #s-create .spacer-cta{display:none}
+  html.desktop .create-bar{left:max(48px,calc((100% - 1120px) / 2));right:max(48px,calc((100% - 1120px) / 2));bottom:26px}
+  html.desktop .tray{top:14px}
 
   /* résultat et destination : image fixe à gauche, contenu à droite */
-  .res-scroll{display:grid;grid-template-columns:minmax(400px,44%) 1fr;align-items:start;padding-bottom:0}
-  .res-left{position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;background:var(--bg)}
-  .res-left .res-hero{flex:1;min-height:0;height:auto}
-  .res-left .res-bottle{flex:none;width:112px;margin-top:-94px}
-  .res-left .res-title{flex:none;padding:8px 36px 28px}
-  .res-title h1{font-size:clamp(34px,3vw,50px)}
-  .res-right{padding:84px 64px 170px 44px;max-width:860px}
-  .res-right>.sec:first-child{margin-top:0}
-  .res-bar{left:calc(max(400px,44%) + 44px);right:auto;width:min(560px,calc(56% - 108px));bottom:28px}
-  .res-bar.two{width:min(480px,calc(56% - 108px))}
+  html.desktop .res-scroll{display:grid;grid-template-columns:minmax(400px,44%) 1fr;align-items:start;padding-bottom:0}
+  html.desktop .res-left{position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;background:var(--bg)}
+  html.desktop .res-left .res-hero{flex:1;min-height:0;height:auto}
+  html.desktop .res-left .res-bottle{flex:none;width:112px;margin-top:-94px}
+  html.desktop .res-left .res-title{flex:none;padding:8px 36px 28px}
+  html.desktop .res-title h1{font-size:clamp(34px,3vw,50px)}
+  html.desktop .res-right{padding:84px 64px 170px 44px;max-width:860px}
+  html.desktop .res-right>.sec:first-child{margin-top:0}
+  html.desktop .res-bar{left:calc(max(400px,44%) + 44px);right:auto;width:min(560px,calc(56% - 108px));bottom:28px}
+  html.desktop .res-bar.two{width:min(480px,calc(56% - 108px))}
 
   /* préférences */
-  .pf-top{padding-left:max(24px,calc((100% - 960px) / 2))}
-  .pf-in{max-width:960px;margin:0 auto;padding:0 40px 90px}
-  .al-grid{grid-template-columns:repeat(3,1fr)}
+  html.desktop .pf-top{padding-left:max(24px,calc((100% - 960px) / 2))}
+  html.desktop .pf-in{max-width:960px;margin:0 auto;padding:0 40px 90px}
+  html.desktop .al-grid{grid-template-columns:repeat(3,1fr)}
 
   /* fiche d'une senteur : fenêtre centrée */
-  .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(560px,92vw);max-height:84%;border-radius:32px;transform:translate(-50%,-44%) scale(.96);opacity:0;transition:transform .8s var(--calm),opacity .6s}
-  #sheetWrap.show .sheet{transform:translate(-50%,-50%);opacity:1}
-  .sheet::before{display:none}
+  html.desktop .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(560px,92vw);max-height:84%;border-radius:32px;transform:translate(-50%,-44%) scale(.96);opacity:0;transition:transform .8s var(--calm),opacity .6s}
+  html.desktop #sheetWrap.show .sheet{transform:translate(-50%,-50%);opacity:1}
+  html.desktop .sheet::before{display:none}
 
   /* animation de création */
-  .lab-stage{width:min(44vh,330px)}
-  .lab-top{top:9vh}
-  .lab-title{font-size:40px}
-  .lab-bottom{bottom:7vh}
-  #toast{bottom:36px;left:calc(50% + 134px)}
+  html.desktop .lab-stage{width:min(44vh,330px)}
+  html.desktop .lab-top{top:9vh}
+  html.desktop .lab-title{font-size:40px}
+  html.desktop .lab-bottom{bottom:7vh}
+  html.desktop #toast{bottom:36px;left:calc(50% + 134px)}
+
+/* ordinateur moyen (fenêtre étroite ou pavé tactile) : mêmes principes, colonnes plus serrées */
+@media (max-width:1139px){
+  html.desktop .hero-art{width:430px;height:430px;right:-100px;top:-30px}
+  html.desktop #s-create .scroll{display:block}
+  html.desktop #s-create .step:nth-of-type(4){margin-top:0}
+  html.desktop .res-scroll{grid-template-columns:minmax(300px,42%) 1fr}
+  html.desktop .res-right{padding:64px 32px 170px 28px}
+  html.desktop .res-bar{left:calc(max(300px,42%) + 28px);width:min(520px,calc(58% - 60px))}
+  html.desktop .cat-tiles{grid-template-columns:repeat(2,1fr)}
+  html.desktop .cgrid{grid-template-columns:1fr}
+  html.desktop .al-grid{grid-template-columns:repeat(2,1fr)}
 }
+
 
 /* souris : survols doux (jamais sur écran tactile) */
 @media (hover:hover) and (pointer:fine){

@@ -9,7 +9,7 @@
   const rnd = (a, b) => a + Math.random() * (b - a);
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const store = {
-    get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
+    get(k, d) { try { const raw = localStorage.getItem(k); if (raw == null) return d; try { return JSON.parse(raw); } catch (e) { return raw; } } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* stockage indisponible */ } }
   };
   const vibrate = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* ignore */ } };
@@ -672,6 +672,7 @@
     const al = VS.ALLERGENS.map(g => `<button class="al${prefs.allergies.includes(g.id) ? ' on' : ''}" data-al="${g.id}"><b>${g.n}</b><small>${g.hint}</small><em>${groupCount(g)} senteurs</em></button>`).join('');
     const fams = Object.keys(FAM).map(f => `<button class="chip${prefs.fams.includes(f) ? ' on' : ''}" data-pf="${f}"><span class="dot" style="--fc:${FAM[f].c}"></span>${FAM[f].n} <em>${VS.NOTE_LIST.filter(n => n.f === f).length}</em></button>`).join('');
     return `<div class="pf-top"><button class="round" id="pfBack" aria-label="Retour">←</button><b>Mes préférences</b></div><div class="pf-in">` +
+      `<section class="pf-sec" style="margin-top:0"><h4 style="margin-top:4px">Affichage</h4><div class="seg" id="viewSeg">${[['auto', 'Automatique'], ['mobile', 'Téléphone'], ['desktop', 'Ordinateur']].map(v => `<button data-v="${v[0]}" class="${store.get('vs.view', 'auto') === v[0] ? 'on' : ''}">${v[1]}</button>`).join('')}</div><p class="sub" style="margin:8px 2px 0">Automatique adapte la mise en page à ta fenêtre.</p></section>` +
       `<p class="pf-lead">Dis-nous ce que tu ne supportes pas : ces senteurs ne seront jamais utilisées dans tes parfums. Les lieux préfaits sont adaptés en remplaçant chaque note écartée par la plus proche.</p>` +
       `<div class="pf-sum" id="pfSum"></div>` +
       `<section class="pf-sec"><h2>Allergies & intolérances</h2><p class="sub">Touche un groupe : toutes les senteurs qui s'y rattachent sont écartées.</p><div class="al-grid">${al}</div></section>` +
@@ -696,6 +697,8 @@
     Motion.watchEls(sc, $$('.pf-lead, .pf-sum, .pf-sec>h2, .al, .pf-sec h4', sc));
     sc.onclick = e => {
       const al = e.target.closest('[data-al]'), pf = e.target.closest('[data-pf]'), pn = e.target.closest('[data-pn]'), pd = e.target.closest('[data-pd]');
+      const vb = e.target.closest('[data-v]');
+      if (vb) { window.setView(vb.dataset.v); $$('#viewSeg button').forEach(x => x.classList.toggle('on', x === vb)); vibrate(8); return; }
       if (al) { togglePref(prefs.allergies, al.dataset.al); al.classList.toggle('on', prefs.allergies.includes(al.dataset.al)); }
       else if (pf) { togglePref(prefs.fams, pf.dataset.pf); pf.classList.toggle('on', prefs.fams.includes(pf.dataset.pf)); }
       else if (pn) { prefs.notes.push(pn.dataset.pn); }
@@ -723,9 +726,14 @@
 
   /* ---------- ordinateur : détection automatique, clavier, souris ---------- */
   (function desktop() {
-    const mq = window.matchMedia('(min-width: 960px)');
-    const apply = () => document.documentElement.classList.toggle('desktop', mq.matches);
-    apply(); mq.addEventListener ? mq.addEventListener('change', apply) : mq.addListener(apply);
+    const fine = window.matchMedia('(pointer: fine)');
+    const apply = () => {
+      const v = store.get('vs.view', 'auto'), w = window.innerWidth;
+      document.documentElement.classList.toggle('desktop', v === 'desktop' || (v === 'auto' && (w >= 960 || (w >= 720 && fine.matches))));
+    };
+    let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(apply, 80); });
+    window.setView = v => { store.set('vs.view', v); apply(); };
+    apply();
     // clavier : Échap ferme la couche du dessus, / cherche, 1-4 changent d'onglet
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {

@@ -6,8 +6,9 @@ création, illustration du lieu, flacon, puis formule détaillée (pyramide olfa
 ## Mobile et ordinateur
 
 Une seule appli, une seule adresse : la mise en page s'adapte toute seule à la largeur de la fenêtre.
-- **< 960 px** (téléphone) : barre d'onglets en bas, une colonne.
-- **≥ 960 px** (ordinateur) : barre latérale, grilles multi-colonnes, création en deux colonnes, résultat avec image fixe à gauche, fenêtre modale pour les senteurs, survols, glisser à la souris dans les carrousels.
+- **Téléphone** : barre d'onglets en bas, une colonne.
+- **Ordinateur** (détecté si la fenêtre fait ≥ 960 px, ou ≥ 720 px avec une souris) : barre latérale, grilles multi-colonnes, création en deux colonnes, résultat avec image fixe à gauche, fenêtre modale pour les senteurs, survols, glisser à la souris dans les carrousels.
+- Forçage : `?view=desktop`, `?view=mobile` ou `?view=auto` dans l'adresse, ou « Affichage » dans Préférences.
 - Clavier : `Échap` ferme la couche du dessus, `/` lance la recherche, `1` à `4` changent d'onglet.
 
 ## Lancer
