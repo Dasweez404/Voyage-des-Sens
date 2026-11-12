@@ -181,7 +181,7 @@
   function rank(ans, seed) {
     const p = params(ans), o = p.opts;
     const tags = o.tags, fams = o.fams, avoid = new Set(o.avoid), dir = (o.dirs || [])[0];
-    const place = ans.place, season = ans.season, det = detailOf(ans), EX = VS.EXCL || new Set();
+    const place = ans.place, season = ans.season, det = detailOf(ans), EX = VS.EXCL_PREF || VS.EXCL || new Set(), EXALL = VS.EXCL || EX;
     const tmax = Math.max(1, ...Object.keys(tags).map(k => tags[k]));
     let a = (seed == null ? Math.floor(Math.random() * 1e9) : seed) >>> 0;
     const rnd = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -204,7 +204,7 @@
     const fav = Object.keys(fams).filter(f => fams[f] >= .6 && !avoid.has(f));
     return list.slice(0, 8).map((x, i) => ({
       d: x.d, parts: x.parts,
-      hits: x.d.notes.filter(id => fav.indexOf(VS.NOTES[id].f) >= 0 && !EX.has(id)),
+      hits: x.d.notes.filter(id => fav.indexOf(VS.NOTES[id].f) >= 0 && !EXALL.has(id)),
       aff: clamp(Math.round(80 + (x.sc / top) * 15 - i * 1.5), 76, 98)
     }));
   }

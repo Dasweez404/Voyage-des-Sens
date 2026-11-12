@@ -1,7 +1,7 @@
 /* Voyage des Sens — interface */
 (function () {
   'use strict';
-  const BUILD = '2611121056';
+  const BUILD = '2611121138';
   // page et scripts de versions différentes (cache) : on repart d'un état propre, une seule fois
   (function guard() {
     const meta = document.querySelector('meta[name="vs-build"]');
@@ -31,6 +31,8 @@
 
   const state = { tab: 'home', cat: 'all', q: '', dirs: new Set(), moods: new Set(), picks: [], sub: 'all', fam: 'all', nq: '', rich: 1, text: '' };
   let coll = store.get('vs.coll', []);
+  let mode = store.get('vs.mode', 'parfum') === 'huile' ? 'huile' : 'parfum';   // format : parfum ou huiles essentielles
+  document.documentElement.classList.toggle('eo', mode === 'huile');
   let current = null;          // composition affichée
   let resultOpen = false;
 
@@ -384,7 +386,7 @@
     if (!coll.length) { grid.innerHTML = `<div class="empty"><span class="shape"></span>${favD.length ? 'Pas encore de parfum gardé.' : 'Ta collection est vide.<br>Compose un parfum et touche <b>Garder</b> pour le retrouver ici.'}</div>`; return; }
     grid.innerHTML = coll.map((c, i) => {
       const comp = rebuild(c);
-      return `<button class="ccard" data-k="${c.key}" style="animation-delay:${i * 60}ms"><div class="th">${Art.scene(comp.spec, { static: true })}<span class="bt">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</span></div><div><b>${comp.name}</b><div class="ac">${comp.accord}</div>${comp.conflicts && comp.conflicts.length ? '<div class="warnb">Contient une senteur que tu évites</div>' : ''}<div class="nn">${comp.notes.slice(0, 5).map(n => n.e + ' ' + n.n).join(' · ')}</div></div><span class="del" data-del="${c.key}" aria-label="Supprimer">✕</span></button>`;
+      return `<button class="ccard${c.fmt === 'huile' ? ' eo-c' : ''}" data-k="${c.key}" style="animation-delay:${i * 60}ms"><div class="th">${Art.scene(comp.spec, { static: true })}<span class="bt">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</span></div><div><b>${comp.name}</b><div class="ac">${comp.accord}</div>${comp.conflicts && comp.conflicts.length ? '<div class="warnb">Contient une senteur que tu évites</div>' : ''}<div class="nn">${comp.notes.slice(0, 5).map(n => n.e + ' ' + n.n).join(' · ')}</div></div><span class="del" data-del="${c.key}" aria-label="Supprimer">✕</span></button>`;
     }).join('');
     Motion.watchEls(grid, $$('.ccard', grid));
     $$('.ccard', grid).forEach(b => b.addEventListener('click', e => {
@@ -393,11 +395,11 @@
       const c = coll.find(x => x.key === b.dataset.k); if (c) openResult(rebuild(c), false);
     }));
   }
-  function rebuild(c) { const comp = E.build(c.ids, { extra: c.extra, key: c.key, name: c.name, tag: c.tag, sceneId: c.sceneId, emoji: c.emoji, cat: c.cat, dirs: c.dirs, moods: c.moods, spec: c.spec }); comp.opts = c.opts; return comp; }
+  function rebuild(c) { const comp = E.build(c.ids, { extra: c.extra, key: c.key, name: c.name, tag: c.tag, sceneId: c.sceneId, emoji: c.emoji, cat: c.cat, dirs: c.dirs, moods: c.moods, spec: c.spec }); comp.opts = c.opts; comp.fmt = c.fmt || 'parfum'; return comp; }
   const isSaved = k => coll.some(c => c.key === k);
   function toggleSave(comp) {
     if (isSaved(comp.key)) { coll = coll.filter(c => c.key !== comp.key); toast('Retiré de ta collection'); }
-    else { coll.unshift({ key: comp.key, name: comp.name, tag: comp.tag, sceneId: comp.sceneId, emoji: comp.emoji, cat: comp.cat, dirs: comp.dirs, moods: comp.moods, extra: comp.extra || [], ids: comp.ids, spec: comp.spec, opts: comp.opts || null, ts: Date.now() }); toast('Ajouté à ta collection 💜'); }
+    else { coll.unshift({ key: comp.key, name: comp.name, tag: comp.tag, sceneId: comp.sceneId, emoji: comp.emoji, cat: comp.cat, dirs: comp.dirs, moods: comp.moods, extra: comp.extra || [], ids: comp.ids, fmt: comp.fmt || mode, spec: comp.spec, opts: comp.opts || null, ts: Date.now() }); toast('Ajouté à ta collection 💜'); }
     store.set('vs.coll', coll); renderColl();
   }
   const shares = comp => { const s = comp.layerShare; return [s.T || 0, s.C || 0, s.F || 0]; };
@@ -494,9 +496,16 @@
   }
   function adaptHTML(comp) {
     let h = '';
-    if (comp.swaps && comp.swaps.length) h += `<div class="adapt"><b>Adapté à tes préférences</b>${comp.swaps.map(w => `<span>${NOTES[w.from].n} → ${NOTES[w.to].n}</span>`).join('')}</div>`;
+    if (comp.swaps && comp.swaps.length) h += `<div class="adapt"><b>${comp.fmt === 'huile' ? comp.swaps.length + ' note' + (comp.swaps.length > 1 ? 's' : '') + ' sur ' + (comp.notes.length) + ' remplacée' + (comp.swaps.length > 1 ? 's' : '') + ' par une huile proche' : 'Adapté à tes préférences'}</b>${comp.swaps.map(w => `<span>${NOTES[w.from].n} → ${NOTES[w.to].n}</span>`).join('')}</div>`;
     if (comp.conflicts && comp.conflicts.length) h += `<div class="adapt warn"><b>Attention</b>Cette formule contient ${lst(comp.conflicts.map(id => NOTES[id].n.toLowerCase()))}, que tu as choisi d'éviter.</div>`;
     return h;
+  }
+  // mélange à diffuser : formule en gouttes + précautions
+  function dropsHTML(comp) {
+    const dr = VS.drops(comp.notes, 12), by = {}; comp.notes.forEach(n => { by[n.id] = n; });
+    const rows = dr.list.map(x => `<div class="dr-row"><span class="ico">${by[x.id].e}</span><span class="nm"><b>${by[x.id].n}</b>${x.warn.length ? `<small>${x.warn.join(' · ')}</small>` : ''}</span><span class="dots" aria-hidden="true">${'<i></i>'.repeat(x.n)}</span><span class="dn2">${x.n} goutte${x.n > 1 ? 's' : ''}</span></div>`).join('');
+    return `<section class="sec rv"><h2>Ton mélange à diffuser</h2><p class="sub">${dr.total} gouttes pour un diffuseur ultrasonique : verse-les dans l'eau, jamais sur la peau.</p><div class="drops">${rows}</div>` +
+      `<div class="eo-note"><b>À savoir</b><p>Les huiles essentielles sont puissantes : aère la pièce, diffuse par séances courtes, et garde-les hors de portée des enfants. Beaucoup sont toxiques pour les chats et les chiens. Voyage des Sens est un jeu d'inspiration, pas un avis d'aromathérapie : demande conseil à un professionnel de santé si tu es enceinte, allergique ou asthmatique.</p></div></section>`;
   }
   function resultHTML(comp) {
     const st = comp.stats, maxP = Math.max.apply(null, comp.notes.map(n => n.pct));
@@ -521,9 +530,10 @@
     const rel = relatedScenes(comp);
     return `<div class="res-left"><div class="res-hero"><div class="art-bg" id="heroArt">${Art.scene(comp.spec)}</div><div class="res-top"><button class="round" id="rBack" aria-label="Retour">←</button><span class="top-actions"><button class="pill" id="rMix">Variation</button><button class="pill" id="rShare">Partager</button></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
       `<div class="res-bottle">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</div>` +
-      `<div class="res-title"><div class="badge">${catLabel}</div><h1>${comp.name}</h1><p class="tg">${tag}</p><span class="accord">${comp.accord}</span></div>` +
+      `<div class="res-title"><div class="badge">${catLabel}${comp.fmt === 'huile' ? ' · Huiles essentielles' : ''}</div><h1>${comp.name}</h1><p class="tg">${tag}</p><span class="accord">${comp.accord}</span></div>` +
       `</div><div class="res-right"><section class="sec rv"><h2>L'histoire</h2>${adaptHTML(comp)}<div class="story"><p>${comp.story}</p>${tags.length ? `<div class="tags">${tags.map(t => `<span>${t}</span>`).join('')}</div>` : ''}</div></section>` +
       `<section class="sec"><h2 class="rv">Pyramide olfactive</h2><p class="sub rv">Touche une note pour la découvrir.</p>${pyr}</section>` +
+      (comp.fmt === 'huile' ? dropsHTML(comp) : '') +
       `<section class="sec rv"><h2>Palette de senteurs</h2><div class="donut-w"><div class="donut"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="15"/>${segs}</svg><div class="mid"><small>dominante</small><b style="font-size:${comp.families[0].n.length <= 6 ? 19 : comp.families[0].n.length <= 9 ? 16 : comp.families[0].n.length <= 11 ? 14 : 12.5}px">${comp.families[0].n}</b></div></div><div class="leg">${legend}</div></div></section>` +
       `<section class="sec rv"><h2>Signature</h2><div class="gauges"><div class="g"><div class="row"><span>Intensité</span><b>${st.intensity} / 10</b></div><div class="track"><div class="fill" style="--w:${st.intensity * 10}%"></div></div></div><div class="g"><div class="row"><span>Tenue</span><b>≈ ${st.hours} h</b></div><div class="track"><div class="fill" style="--w:${Math.round(st.hours / 14 * 100)}%"></div></div></div><div class="g"><div class="row"><span>Sillage</span><b>${st.sillage}</b></div><div class="track"><div class="fill" style="--w:${st.sillageV}%"></div></div></div></div>` +
       `<div class="sig2"><div class="box"><h4>Saisons</h4><div class="seasons">${seasonKeys.map(k => `<span class="${st.best.includes(k) ? 'on' : ''}">${SEASON[k][1]}</span>`).join('')}</div></div><div class="box"><h4>Moment</h4><div class="moment">${mom[1]}</div></div></div>` +
@@ -531,6 +541,7 @@
       `<section class="sec rv"><h2>Dans la même veine</h2><div class="rel">${rel.map(s => `<button class="hcard" data-sc="${s.id}"><div class="pic"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span></div><b>${s.n}</b></button>`).join('')}</div></section></div>`;
   }
   function openResult(comp, reveal) {
+    comp.fmt = comp.fmt || mode;
     current = comp;
     const wrap = $('#result'), sc = $('#resScroll');
     wrap.hidden = false; wrap.setAttribute('aria-hidden', 'false');
@@ -625,12 +636,12 @@
       : famNames.length
         ? `Ton accord ${comp.accord.toLowerCase()} retrouve à ${d.n} les notes ${lst(famNames)} qui dominent l'air du lieu, dans une ambiance ${amb}.`
         : `L'ambiance ${amb} de ${d.n} est celle que ton parfum dessine.`;
-    const chips = d.notes.map(id => `<span class="${(quiz ? x.hits : comp.ids).includes(id) ? 'on' : ''}${VS.EXCL.has(id) ? ' ex' : ''}"${VS.EXCL.has(id) ? ' title="Écartée par tes préférences"' : ''}>${NOTES[id].e} ${NOTES[id].n}</span>`).join('');
+    const chips = d.notes.map(id => `<span class="${(quiz ? x.hits : comp.ids).includes(id) ? 'on' : ''}${VS.EXCL.has(id) ? ' ex' : ''}"${VS.EXCL.has(id) ? ' title="' + (VS.EXCL_PREF.has(id) ? 'Écartée par tes préférences' : 'Pas d\'huile essentielle') + '"' : ''}>${NOTES[id].e} ${NOTES[id].n}</span>`).join('');
     const others = list.map((o, i) => [o, i]).filter(([, i]) => i !== idx).slice(0, 4);
     return `<div class="res-left"><div class="res-hero"><div class="art-bg" id="destArt">${Art.scene(spec)}</div><div class="res-top"><button class="round" id="dBack" aria-label="Retour">←</button><span></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
       `<div class="res-title" style="padding-top:8px"><div class="badge">${favm ? 'Gardée' : 'Ta destination'} · ${d.c}</div><h1>${d.n}</h1><p class="tg">${d.tag}</p>${x.aff == null ? '' : '<span class="accord">' + x.aff + ' % d\'affinité ' + (comp.quiz ? 'avec tes réponses' : 'olfactive') + '</span>'}</div>` +
       `</div><div class="res-right"><section class="sec rv"><h2>Pourquoi ici</h2><div class="story"><p>${d.txt} ${why}</p>${wn}</div></section>` +
-      `<section class="sec rv"><h2>Ce que tu y respireras</h2><p class="sub">${favm ? 'Les senteurs de l\'air du lieu.' : quiz ? 'Les notes en couleur correspondent à ton profil.' : 'Les notes en couleur sont déjà dans ta formule.'}${exn ? ' Les notes barrées sont écartées par tes préférences.' : ''}</p><div class="dn">${chips}</div></section>` +
+      `<section class="sec rv"><h2>Ce que tu y respireras</h2><p class="sub">${favm ? 'Les senteurs de l\'air du lieu.' : quiz ? 'Les notes en couleur correspondent à ton profil.' : 'Les notes en couleur sont déjà dans ta formule.'}${exn ? (mode === 'huile' ? ' Les notes barrées n\'existent pas en huile essentielle ou sont écartées par tes préférences.' : ' Les notes barrées sont écartées par tes préférences.') : ''}</p><div class="dn">${chips}</div></section>` +
       `<section class="sec rv"><h2>Bon à savoir</h2><div class="sig2" style="margin-top:0"><div class="box"><h4>Quand partir</h4><div class="moment" style="font-size:19px">${d.when}</div></div><div class="box"><h4>Durée idéale</h4><div class="moment" style="font-size:19px">${d.dur}</div></div></div><div class="box" style="margin-top:12px"><h4>Ambiance</h4><div class="tags" style="margin-top:0">${d.tags.map(t => `<span>${tagLabel(t)}</span>`).join('')}</div></div></section>` +
       `<section class="sec"><h2 class="rv">Ton itinéraire olfactif</h2><p class="sub rv">Trois moments à respirer.</p><div class="stops rv">${d.stops.map((s, i) => `<div class="stop" style="--d:${(.2 + i * .25).toFixed(2)}s"><b>${s.t}</b><span>${s.o}</span></div>`).join('')}</div></section>` +
       (quiz ? scentCard(d) : '') +
@@ -739,7 +750,7 @@
   }
   function quizIntro() {
     const last = store.get('vs.quiz', null);
-    return `<div class="qz-body${QZ.back ? ' back' : ''}"><header class="page-h"><h2>Le quiz olfactif</h2><p>Neuf questions, une minute : on te trouve la destination qui te ressemble, avec son itinéraire olfactif et le parfum qui l\'accompagne.</p></header>` +
+    return `<div class="qz-body${QZ.back ? ' back' : ''}"><header class="page-h"><div class="fmt-slot"></div><h2>Le quiz olfactif</h2><p>Neuf questions, une minute : on te trouve la destination qui te ressemble, avec son itinéraire olfactif et le parfum qui l\'accompagne.</p></header>` +
       `<div class="qz-intro"><div class="qz-orb" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` +
       `<ul class="qz-points"><li><b>9</b> questions courtes</li><li><b>1</b> minute</li><li><b>111</b> destinations</li></ul>` +
       `<button class="btn primary big" data-q="start">Commencer le quiz</button></div>` +
@@ -757,6 +768,7 @@
   }
   function renderQuiz() {
     const box = $('#quizBox'); box.innerHTML = QZ.i < 0 ? quizIntro() : quizQuestion();
+    renderFmt();
     const bar = $('.qz-bar i', box); if (bar) requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = bar.dataset.to + '%'; }));
     QZ.back = false; QZ.busy = false;
     const h = $('#qzQ', box); if (h) { try { h.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }
@@ -801,6 +813,21 @@
     e.preventDefault(); bs[i < 0 ? 0 : (i + d + bs.length) % bs.length].focus();
   });
 
+  /* ---------- format : parfum ou huiles essentielles ---------- */
+  function fmtHTML() {
+    return `<div class="fmt-switch" role="group" aria-label="Format"><button data-fmt="parfum" aria-pressed="${mode === 'parfum'}" class="${mode === 'parfum' ? 'on' : ''}"><i>✦</i>Parfum</button><button data-fmt="huile" aria-pressed="${mode === 'huile'}" class="${mode === 'huile' ? 'on' : ''}"><i>💧</i>Huiles essentielles</button></div>` +
+      (mode === 'huile' ? '<p class="fmt-hint">Seules les senteurs qui existent en huile essentielle sont utilisées : les autres sont remplacées par la plus proche.</p>' : '');
+  }
+  function renderFmt() { $$('.fmt-slot').forEach(el => { el.innerHTML = fmtHTML(); }); }
+  function setMode(m) {
+    if (m === mode) return;
+    mode = m; store.set('vs.mode', m); document.documentElement.classList.toggle('eo', m === 'huile');
+    applyPrefs(); renderFmt(); renderHome(); renderPlaces(); renderCreate(); renderColl();
+    toast(m === 'huile' ? 'Mode huiles essentielles : formules en gouttes pour diffuseur' : 'Mode parfum');
+    vibrate(10);
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-fmt]'); if (b) setMode(b.dataset.fmt); });
+
   /* ---------- fiche d'une note ---------- */
   const ROLE = { T: 'Elle donne son éclat à l\'ouverture et accroche le nez dès les premières secondes, avant de s\'effacer doucement.', C: 'Elle construit le caractère du parfum : c\'est elle qu\'on reconnaît pendant la plus grande partie de la journée.', F: 'Elle ancre toute la formule et prolonge la trace sur la peau et les vêtements pendant des heures.' };
   function openSheet(id, comp) {
@@ -833,10 +860,11 @@
     prefs.allergies.forEach(id => { const g = VS.ALLERGENS.find(x => x.id === id); if (!g) return; g.ids.forEach(i => ex.add(i)); VS.NOTE_LIST.forEach(n => { if (g.fams.includes(n.f)) ex.add(n.id); }); });
     prefs.fams.forEach(f => VS.NOTE_LIST.forEach(n => { if (n.f === f) ex.add(n.id); }));
     prefs.notes.forEach(i => ex.add(i));
-    VS.EXCL = ex;
+    VS.EXCL_PREF = ex;
+    VS.EXCL = mode === 'huile' ? new Set([...ex, ...VS.NOTE_LIST.filter(n => !VS.EO.has(n.id)).map(n => n.id)]) : ex;
   }
   function updateExclUI() {
-    const g = prefs.allergies.length + prefs.fams.length + prefs.notes.length, n = VS.EXCL.size;
+    const g = prefs.allergies.length + prefs.fams.length + prefs.notes.length, n = VS.EXCL_PREF.size;
     const b = $('#prefBadge'); b.hidden = !g; b.textContent = g;
     const sb = $('#sidePrefBadge'); sb.hidden = !g; sb.textContent = g;
     const row = $('#exclRow'); row.classList.toggle('on', g > 0);
@@ -852,7 +880,7 @@
     const al = VS.ALLERGENS.map(g => `<button class="al${prefs.allergies.includes(g.id) ? ' on' : ''}" data-al="${g.id}"><b>${g.n}</b><small>${g.hint}</small><em>${groupCount(g)} senteurs</em></button>`).join('');
     const fams = Object.keys(FAM).map(f => `<button class="chip${prefs.fams.includes(f) ? ' on' : ''}" data-pf="${f}"><span class="dot" style="--fc:${FAM[f].c}"></span>${FAM[f].n} <em>${VS.NOTE_LIST.filter(n => n.f === f).length}</em></button>`).join('');
     return `<div class="pf-top"><button class="round" id="pfBack" aria-label="Retour">←</button><b>Mes préférences</b></div><div class="pf-in">` +
-      `<section class="pf-sec" style="margin-top:0"><h4 style="margin-top:4px">Affichage</h4><div class="seg" id="viewSeg">${[['auto', 'Automatique'], ['mobile', 'Téléphone'], ['desktop', 'Ordinateur']].map(v => `<button data-v="${v[0]}" class="${store.get('vs.view', 'auto') === v[0] ? 'on' : ''}">${v[1]}</button>`).join('')}</div><p class="sub" style="margin:8px 2px 0">Automatique adapte la mise en page à ta fenêtre.</p></section>` +
+      `<section class="pf-sec" style="margin-top:0"><h4 style="margin-top:4px">Format</h4><div class="fmt-slot"></div></section><section class="pf-sec"><h4 style="margin-top:4px">Affichage</h4><div class="seg" id="viewSeg">${[['auto', 'Automatique'], ['mobile', 'Téléphone'], ['desktop', 'Ordinateur']].map(v => `<button data-v="${v[0]}" class="${store.get('vs.view', 'auto') === v[0] ? 'on' : ''}">${v[1]}</button>`).join('')}</div><p class="sub" style="margin:8px 2px 0">Automatique adapte la mise en page à ta fenêtre.</p></section>` +
       `<p class="pf-lead">Dis-nous ce que tu ne supportes pas : ces senteurs ne seront jamais utilisées dans tes parfums. Les lieux préfaits sont adaptés en remplaçant chaque note écartée par la plus proche.</p>` +
       `<div class="pf-sum" id="pfSum"></div>` +
       `<section class="pf-sec"><h2>Allergies & intolérances</h2><p class="sub">Touche un groupe : toutes les senteurs qui s'y rattachent sont écartées.</p><div class="al-grid">${al}</div></section>` +
@@ -863,17 +891,17 @@
       `<p class="pf-note">Voyage des Sens est un jeu d'inspiration, pas un avis médical : en cas d'allergie avérée, vérifie toujours la composition d'un vrai parfum et demande conseil à un professionnel de santé.</p></div>`;
   }
   function refreshPrefs() {
-    const n = VS.EXCL.size, tot = VS.NOTE_LIST.length;
+    const n = VS.EXCL_PREF.size, tot = VS.NOTE_LIST.length;
     $('#pfSum').innerHTML = n ? `<div class="n"><b>${n}</b> senteurs écartées <small>sur ${tot}</small></div><div class="bar"><i style="width:${Math.min(100, n / tot * 100).toFixed(1)}%"></i></div>` : `<div class="n">Aucune exclusion</div><div class="bar"><i></i></div>`;
     $('#pfNotes').innerHTML = prefs.notes.length ? prefs.notes.map(id => `<button class="chip note on" data-pd="${id}" style="--fc:${FAM[NOTES[id].f].c}">${NOTES[id].e} ${NOTES[id].n} <u>×</u></button>`).join('') : '<span class="pf-none">Aucune pour l\'instant.</span>';
     const q = strip(($('#pfSearch').value || '').trim());
-    const res = q ? VS.NOTE_LIST.filter(x => !VS.EXCL.has(x.id) && strip(x.n).includes(q)).sort((a, b) => a.n.localeCompare(b.n, 'fr')).slice(0, 16) : [];
+    const res = q ? VS.NOTE_LIST.filter(x => !VS.EXCL_PREF.has(x.id) && strip(x.n).includes(q)).sort((a, b) => a.n.localeCompare(b.n, 'fr')).slice(0, 16) : [];
     $('#pfRes').innerHTML = q ? (res.length ? res.map(x => `<button class="chip note" data-pn="${x.id}" style="--fc:${FAM[x.f].c}">${x.e} ${x.n} <u>+</u></button>`).join('') : '<span class="pf-none">Rien à écarter avec ce mot.</span>') : '';
   }
   function togglePref(list, v) { const i = list.indexOf(v); i >= 0 ? list.splice(i, 1) : list.push(v); }
   function openPrefs() {
     const w = $('#prefs'), sc = $('#prefsScroll');
-    sc.innerHTML = prefsHTML(); sc.scrollTop = 0; refreshPrefs();
+    sc.innerHTML = prefsHTML(); sc.scrollTop = 0; refreshPrefs(); renderFmt();
     Motion.watchEls(sc, $$('.pf-lead, .pf-sum, .pf-sec>h2, .al, .pf-sec h4', sc));
     sc.onclick = e => {
       const al = e.target.closest('[data-al]'), pf = e.target.closest('[data-pf]'), pn = e.target.closest('[data-pn]'), pd = e.target.closest('[data-pd]');
@@ -959,7 +987,7 @@
   }
 
   /* ---------- init ---------- */
-  applyPrefs(); renderHome(); renderPlaces(); renderCreate(); sync();
+  applyPrefs(); renderFmt(); renderHome(); renderPlaces(); renderCreate(); sync();
   $$('.hero h1, .page-h h2, .block h2').forEach(Motion.splitWords); Motion.watchScreens();
   $('#collBadge').hidden = !coll.length; $('#collBadge').textContent = coll.length;
   splash();

@@ -1,7 +1,7 @@
 // Vérifie la cohérence des données (ids, couches, harmonie) — node tools/validate.js
 const fs = require('fs'), path = require('path'), vm = require('vm');
 global.window = global;
-for (const f of ['notes_extra', 'notes', 'scenes', 'destinations', 'prefs', 'art', 'engine', 'quiz']) vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8'), { filename: f });
+for (const f of ['notes_extra', 'notes', 'scenes', 'destinations', 'eo', 'prefs', 'art', 'engine', 'quiz']) vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8'), { filename: f });
 const VS = global.VS; let bad = 0;
 console.log('notes:', VS.NOTE_LIST.length, 'lieux:', VS.SCENES.length);
 const seen = new Set(VS.NOTE_LIST.map(n => n.id));
@@ -96,6 +96,25 @@ const used = new Set(VS.SCENES.map(x => VS.Engine.destinations(VS.Engine.fromSce
 console.log('destinations:', VS.DESTS.length, '| utilisées par les lieux:', used.size);
 let dd = new Set(); for (let i = 0; i < 300; i++) { const c = VS.Engine.compose({ moods: [VS.MOODS[i % 18][0]], dirs: [VS.DIRECTIONS[i % 4][0]] }); dd.add(VS.Engine.destinations(c)[0].d.id); }
 console.log('destinations différentes sur 300 créations:', dd.size);
+
+// mode huiles essentielles : chaque lieu et chaque création ne contiennent que des huiles réelles, bien équilibrées
+{
+  const ex = new Set(VS.NOTE_LIST.filter(n => !VS.EO.has(n.id)).map(n => n.id)); VS.EXCL = ex; VS.EXCL_PREF = new Set();
+  let low = 0, worst = 0, totSw = 0;
+  VS.SCENES.forEach(x => {
+    const c = VS.Engine.fromScene(x), cnt = 'TCF'.split('').map(l => c.byLayer[l].length);
+    if (c.notes.some(n => !VS.EO.has(n.id))) { console.log('EO : note sans huile', x.id); bad++; }
+    if (cnt.some(v => v < 3 || v > 5)) { console.log('EO : équilibre', x.id, cnt); bad++; }
+    if (new Set(c.ids).size !== c.ids.length) { console.log('EO : doublon', x.id); bad++; }
+    const mx = Math.max(...c.notes.map(n => n.pct)); if (mx > 16) { console.log('EO : note dominante', x.id, mx); bad++; }
+    if (c.stats.harmony < 70) low++;
+    totSw += c.swaps.length / Math.max(1, x.notes.length); worst = Math.max(worst, c.swaps.length / x.notes.length);
+    const dr = VS.drops(c.notes, 12); if (dr.list.some(y => y.n < 1) || dr.total < 12) { console.log('EO : gouttes', x.id, dr.total); bad++; }
+  });
+  for (let i = 0; i < 150; i++) { const c = VS.Engine.compose({ moods: [VS.MOODS[i % 18][0]], dirs: [VS.DIRECTIONS[i % 4][0]] }); const cnt = 'TCF'.split('').map(l => c.byLayer[l].length); if (c.notes.some(n => !VS.EO.has(n.id)) || cnt.some(v => v < 3 || v > 5)) { console.log('EO : création', i, cnt); bad++; } }
+  console.log('huiles essentielles :', VS.EO.size, 'notes | remplacées par lieu en moyenne', Math.round(totSw / VS.SCENES.length * 100) + ' %, maximum', Math.round(worst * 100) + ' % | harmonie < 70 :', low);
+  VS.EXCL = new Set();
+}
 console.log(JSON.stringify(VS.Engine.analyzeText('un chalet en hiver, doux et un peu de vanille').scene && VS.Engine.analyzeText('un chalet en hiver, doux et un peu de vanille').scene.id));
 console.log(bad ? 'ERREURS: ' + bad : 'OK');
 process.exit(bad ? 1 : 0);

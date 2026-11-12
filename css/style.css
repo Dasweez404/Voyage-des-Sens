@@ -794,3 +794,30 @@ html.desktop .scent-card>.btn{grid-column:auto}
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+/* ---------- format : parfum / huiles essentielles ---------- */
+html.eo{--terra:#6b7a35;--terra2:#515e27;--sand:#d9c98a;--blush:#dfe0bd;--rose:#b7bf8e}
+.fmt-switch{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--paper2);box-shadow:inset 0 0 0 1.5px var(--line);max-width:100%}
+.fmt-switch button{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:999px;font-size:13.5px;font-weight:700;color:var(--ink2);white-space:nowrap;transition:background .5s var(--ease),color .5s var(--ease),transform .5s var(--spring)}
+.fmt-switch button i{font-style:normal;font-size:13px}
+.fmt-switch button.on{background:var(--terra);color:var(--cream);box-shadow:0 3px 0 var(--terra2)}
+.fmt-switch button:active{transform:scale(.96)}
+.fmt-switch button:focus-visible{outline:3px solid var(--terra2);outline-offset:2px}
+.fmt-slot{margin:0 0 14px}
+.fmt-hint{margin:8px 2px 0;font-size:12.5px;line-height:1.45;color:var(--ink2);max-width:46ch}
+.drops{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.dr-row{display:grid;grid-template-columns:34px 1fr auto;grid-template-areas:'i n d' 'i p p';align-items:center;gap:4px 10px;padding:10px 14px;border-radius:18px;background:var(--paper)}
+.dr-row .ico{grid-area:i;font-size:24px;text-align:center}
+.dr-row .nm{grid-area:n;display:flex;flex-direction:column}
+.dr-row .nm b{font-size:15px}
+.dr-row .nm small{font-size:11.5px;line-height:1.35;color:var(--mut)}
+.dr-row .dn2{grid-area:d;font-size:13px;font-weight:700;color:var(--terra)}
+.dr-row .dots{grid-area:p;display:flex;gap:5px;flex-wrap:wrap}
+.dr-row .dots i{width:9px;height:12px;border-radius:50% 50% 50% 50%/62% 62% 38% 38%;background:var(--terra);opacity:.85;transform:scale(0);animation:dropIn .7s var(--spring) both}
+.dr-row .dots i:nth-child(2){animation-delay:.08s}.dr-row .dots i:nth-child(3){animation-delay:.16s}.dr-row .dots i:nth-child(4){animation-delay:.24s}.dr-row .dots i:nth-child(n+5){animation-delay:.32s}
+@keyframes dropIn{from{transform:translateY(-10px) scale(0)}to{transform:none}}
+.eo-note{margin-top:14px;padding:14px 16px;border-radius:18px;background:var(--paper2);font-size:13px;line-height:1.5;color:var(--ink2)}
+.eo-note b{display:block;margin-bottom:4px;color:var(--ink)}
+.eo-note p{margin:0}
+.ccard.eo-c::after{content:'💧';position:absolute;top:10px;left:10px;font-size:15px;filter:drop-shadow(0 1px 0 rgba(255,255,255,.6))}
+@media (prefers-reduced-motion:reduce){.dr-row .dots i{animation:none;transform:none}}
