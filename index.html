@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Voyage des Sens</title>
 <meta name="description" content="Imagine un lieu, un souvenir, une ambiance : on en compose le parfum et on t'en révèle la formule.">
-<meta name="theme-color" content="#0d0a18">
+<meta name="theme-color" content="#f8eadf">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,22 +17,22 @@
 </head>
 <body>
 <div id="app">
-  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="blobs" id="blobs" aria-hidden="true"></div>
 
   <main id="screens">
     <!-- ACCUEIL -->
     <section id="s-home" class="screen active" aria-label="Accueil">
       <div class="scroll">
         <header class="hero">
-          <div class="rise-icons" id="riseIcons" aria-hidden="true"></div>
+          <div class="hero-art" aria-hidden="true"><svg viewBox="0 0 300 300"><circle class="hc1" cx="170" cy="130" r="120"/><circle class="hc2" cx="140" cy="150" r="82"/><circle class="hc3" cx="238" cy="52" r="44"/><circle class="hc4" cx="92" cy="206" r="26"/></svg></div>
           <p class="brand">Voyage des Sens</p>
           <h1>Imagine un lieu.<br><em>Respire-le.</em></h1>
           <p class="lead">Un souvenir, un voyage, une ambiance&nbsp;: on compose pour toi le parfum qui lui ressemble, et on te livre sa formule.</p>
           <div class="cta-col">
-            <button class="btn primary big" data-go="create"><span class="ic">✨</span> Composer mon parfum</button>
+            <button class="btn primary big" data-go="create">Composer mon parfum</button>
             <div class="cta-row">
-              <button class="btn glass" data-go="places"><span class="ic">🧭</span> Explorer les lieux</button>
-              <button class="btn glass" id="btnSurprise"><span class="ic">🎲</span> Surprends-moi</button>
+              <button class="btn soft" data-go="places">Explorer les lieux</button>
+              <button class="btn soft" id="btnSurprise">Surprends-moi</button>
             </div>
           </div>
         </header>
@@ -57,7 +57,7 @@
         <header class="page-h">
           <h2>Les lieux</h2>
           <p>Touche un lieu : on en distille l'odeur.</p>
-          <label class="search"><span>🔍</span><input id="placeSearch" type="search" placeholder="chalet, plage, boulangerie…" autocomplete="off"></label>
+          <label class="search"><span></span><input id="placeSearch" type="search" placeholder="chalet, plage, boulangerie…" autocomplete="off"></label>
           <div class="chips scrollx" id="catChips"></div>
         </header>
         <div class="pgrid" id="placeGrid"></div>
@@ -90,7 +90,7 @@
 
         <section class="step">
           <h3><b>4</b> Des senteurs <small id="pickCount">jusqu'à 5</small></h3>
-          <label class="search"><span>🔍</span><input id="noteSearch" type="search" placeholder="vanille, rose, cèdre, pop-corn…" autocomplete="off"></label>
+          <label class="search"><span></span><input id="noteSearch" type="search" placeholder="vanille, rose, cèdre, pop-corn…" autocomplete="off"></label>
           <div class="chips scrollx" id="famChips"></div>
           <div class="chips wrap notes" id="noteChips"></div>
         </section>
@@ -107,7 +107,7 @@
       </div>
       <div class="create-bar" id="createBar">
         <div class="cb-info" id="cbInfo">Choisis au moins une envie</div>
-        <button class="btn primary" id="btnCreate" disabled>Créer ✨</button>
+        <button class="btn primary" id="btnCreate" disabled>Créer</button>
       </div>
     </section>
 
@@ -124,19 +124,19 @@
   </main>
 
   <nav id="tabbar" aria-label="Navigation">
-    <button data-go="home" class="on"><i>🏠</i><span>Accueil</span></button>
-    <button data-go="places"><i>🧭</i><span>Lieux</span></button>
-    <button data-go="create" class="mid"><i>✨</i><span>Créer</span></button>
-    <button data-go="coll"><i>💜</i><span>Collection</span><b id="collBadge" hidden>0</b></button>
+    <span class="ind"></span>
+    <button data-go="home" class="on">Accueil</button>
+    <button data-go="places">Lieux</button>
+    <button data-go="create">Créer</button>
+    <button data-go="coll">Collection<b id="collBadge" hidden>0</b></button>
   </nav>
 
   <!-- LABORATOIRE (animation de création) -->
   <div id="lab" class="overlay" aria-hidden="true" hidden>
-    <div class="lab-bg"></div>
-    <div class="lab-stars"></div>
+    <div class="blobs" id="labBlobs"></div>
     <button class="skip" id="labSkip">Passer</button>
     <div class="lab-top">
-      <div class="lab-emoji" id="labEmoji">✨</div>
+      <div class="lab-kicker">Distillation</div>
       <div class="lab-title" id="labTitle"></div>
     </div>
     <div class="lab-stage" id="labStage"></div>
@@ -144,7 +144,7 @@
       <div class="lab-phase" id="labPhase"></div>
       <div class="lab-dots"><i></i><i></i><i></i><i></i></div>
     </div>
-    <div class="flash" id="labFlash"></div>
+    <div class="wipe" id="labWipe"></div>
   </div>
 
   <!-- RÉSULTAT -->

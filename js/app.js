@@ -38,10 +38,21 @@
   }
   const noteIcons = (sc, n) => sc.notes.slice(0, n).map(id => NOTES[id].e).join(' ');
 
+  /* ---------- formes ondulées de fond (morphing SMIL, aplats) ---------- */
+  function blobsSVG() {
+    const A = ['M-20,-20 L250,-20 C300,60 250,130 170,150 C100,168 60,210 40,270 C25,320 10,330 -20,340 Z', 'M-20,-20 L290,-20 C290,80 220,110 150,170 C90,220 70,250 60,300 C45,350 20,380 -20,390 Z'];
+    const B = ['M420,820 L420,560 C340,570 310,620 250,650 C190,680 150,730 160,820 Z', 'M420,820 L420,520 C350,560 300,600 260,670 C220,730 230,770 200,820 Z'];
+    const C = ['M420,250 C340,240 300,300 320,360 C340,420 290,450 330,520 C350,550 380,560 420,560 Z', 'M420,300 C350,290 280,330 300,390 C320,440 300,500 340,540 C360,560 380,570 420,570 Z'];
+    const path = (cls, v, dur) => `<path class="${cls}" d="${v[0]}"><animate attributeName="d" dur="${dur}s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.5;1" keySplines=".45 0 .55 1;.45 0 .55 1" values="${v[0]};${v[1]};${v[0]}"/></path>`;
+    return `<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice"><g class="bg3">${path('b3', C, 21)}</g><g class="bg2">${path('b2', B, 17)}</g><g class="bg1">${path('b1', A, 15)}</g></svg>`;
+  }
+  $('#blobs').innerHTML = blobsSVG(); $('#labBlobs').innerHTML = blobsSVG();
+
   /* ---------- navigation ---------- */
   function go(tab) {
     if (resultOpen) closeResult();
-    state.tab = tab;
+    state.tab = tab; $('#app').dataset.tab = tab;
+    $('#tabbar').style.setProperty('--i', ['home', 'places', 'create', 'coll'].indexOf(tab));
     $$('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + tab));
     $$('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.go === tab));
     if (tab === 'coll') renderColl();
@@ -54,15 +65,12 @@
 
   /* ---------- accueil ---------- */
   function renderHome() {
-    const icons = $('#riseIcons');
-    const pool = shuffle(VS.NOTE_LIST.filter(n => n.e.length <= 2)).slice(0, 14);
-    icons.innerHTML = pool.map((n, i) => `<span style="left:${rnd(4, 94).toFixed(0)}%;animation-duration:${rnd(9, 17).toFixed(1)}s;animation-delay:-${rnd(0, 14).toFixed(1)}s;--sx:${rnd(-40, 40).toFixed(0)}px;--rot:${rnd(-40, 40).toFixed(0)}deg;font-size:${rnd(18, 30).toFixed(0)}px">${n.e}</span>`).join('');
     const picks = shuffle(VS.SCENES).slice(0, 10);
-    $('#homeCarousel').innerHTML = picks.map(s => `<button class="hcard" data-sc="${s.id}"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span><div class="cap">${s.n}<small>${s.tag}</small></div></button>`).join('');
+    $('#homeCarousel').innerHTML = picks.map(s => `<button class="hcard" data-sc="${s.id}"><div class="pic"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span></div><b>${s.n}</b><small>${s.tag}</small></button>`).join('');
     lazyArt($('#homeCarousel'));
-    const tc = { int: '#ffb25b', par: '#ff6b9d', voy: '#35c8ff', sou: '#a07be8' };
+    const tc = { int: ['#f4dcbf', '#e6b67f'], par: ['#f6d6c9', '#d9a18d'], voy: ['#dfe5c8', '#adb78f'], sou: ['#ecd5dd', '#d3a2b5'] };
     const desc = { int: 'Chalet, bibliothèque, hôpital…', par: 'Station-service, cirque, ferme…', voy: 'Marchés, plages, volcans…', sou: 'Grenier, rentrée, Noël…' };
-    $('#catTiles').innerHTML = VS.CATS.map(c => `<button class="ctile" data-cat="${c.id}" style="--tc:${tc[c.id]}"><span class="big">${c.e}</span><b>${c.n}</b><small>${VS.SCENES.filter(s => s.cat === c.id).length} lieux · ${desc[c.id]}</small></button>`).join('');
+    $('#catTiles').innerHTML = VS.CATS.map(c => `<button class="ctile" data-cat="${c.id}" style="--tb:${tc[c.id][0]};--tc:${tc[c.id][1]}"><b>${c.n}</b><small>${VS.SCENES.filter(s => s.cat === c.id).length} lieux · ${desc[c.id]}</small></button>`).join('');
     $$('#catTiles .ctile').forEach(b => b.addEventListener('click', () => { state.cat = b.dataset.cat; renderPlaces(); go('places'); }));
     $('#homeStats').innerHTML = `<div><b>${VS.NOTE_LIST.length}</b><span>senteurs</span></div><div><b>${VS.SCENES.length}</b><span>lieux</span></div><div><b>${Object.keys(FAM).length}</b><span>familles</span></div>`;
   }
@@ -76,21 +84,21 @@
 
   /* ---------- lieux ---------- */
   function renderPlaces() {
-    $('#catChips').innerHTML = [{ id: 'all', n: 'Tous', e: '✨' }].concat(VS.CATS).map(c => `<button class="chip${state.cat === c.id ? ' on' : ''}" data-c="${c.id}">${c.e} ${c.n}</button>`).join('');
+    $('#catChips').innerHTML = [{ id: 'all', n: 'Tous' }].concat(VS.CATS).map(c => `<button class="chip${state.cat === c.id ? ' on' : ''}" data-c="${c.id}">${c.n}</button>`).join('');
     $$('#catChips .chip').forEach(b => b.addEventListener('click', () => { state.cat = b.dataset.c; renderPlaces(); }));
     const q = strip(state.q.trim());
     const list = VS.SCENES.filter(s => (state.cat === 'all' || s.cat === state.cat) && (!q || strip(s.n + ' ' + s.tag + ' ' + s.notes.map(id => NOTES[id].n).join(' ')).includes(q)));
     const grid = $('#placeGrid');
-    grid.innerHTML = list.length ? list.map((s, i) => `<button class="pcard" data-sc="${s.id}" style="--i:${Math.min(i, 14)}"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span><div class="meta"><b>${s.n}</b><span class="t">${s.tag}</span><span class="ns">${noteIcons(s, 5)}</span></div></button>`).join('') : `<div class="empty"><big>🫧</big>Aucun lieu ne répond à « ${state.q} ».<br>Essaie de le décrire dans <b>Créer</b>.</div>`;
+    grid.innerHTML = list.length ? list.map((s, i) => `<button class="pcard" data-sc="${s.id}" style="--i:${Math.min(i, 14)}"><div class="pic"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span></div><b>${s.n}</b><span class="t">${s.tag}</span><span class="ns">${noteIcons(s, 5)}</span></button>`).join('') : `<div class="empty"><span class="shape"></span>Aucun lieu ne répond à « ${state.q} ».<br>Essaie de le décrire dans <b>Créer</b>.</div>`;
     lazyArt(grid);
   }
   $('#placeSearch').addEventListener('input', e => { state.q = e.target.value; renderPlaces(); });
 
   /* ---------- création ---------- */
   function renderCreate() {
-    $('#dirGrid').innerHTML = VS.DIRECTIONS.map(d => `<button class="dir" data-d="${d[0]}"><span class="e">${d[2]}</span><b>${d[1]}</b><small>${d[3]}</small></button>`).join('');
+    $('#dirGrid').innerHTML = VS.DIRECTIONS.map(d => `<button class="dir" data-d="${d[0]}" style="--dc:${{ nos: '#e6b67f', dec: '#adb78f', voy: '#efcbbb', exo: '#d9a18d' }[d[0]]}"><b>${d[1]}</b><small>${d[3]}</small></button>`).join('');
     $$('#dirGrid .dir').forEach(b => b.addEventListener('click', () => { toggleSet(state.dirs, b.dataset.d, 2); b.classList.toggle('on', state.dirs.has(b.dataset.d)); vibrate(8); sync(); }));
-    $('#moodChips').innerHTML = VS.MOODS.map(m => `<button class="chip" data-m="${m[0]}">${m[2]} ${m[1]}</button>`).join('');
+    $('#moodChips').innerHTML = VS.MOODS.map(m => `<button class="chip" data-m="${m[0]}">${m[1]}</button>`).join('');
     $$('#moodChips .chip').forEach(b => b.addEventListener('click', () => { toggleSet(state.moods, b.dataset.m, 5); b.classList.toggle('on', state.moods.has(b.dataset.m)); vibrate(8); sync(); }));
     $('#famChips').innerHTML = `<button class="chip on" data-f="all">Toutes</button>` + Object.keys(FAM).map(f => `<button class="chip" data-f="${f}"><span class="dot" style="--fc:${FAM[f].c}"></span>${FAM[f].n}</button>`).join('');
     $$('#famChips .chip').forEach(b => b.addEventListener('click', () => { state.fam = b.dataset.f; $$('#famChips .chip').forEach(x => x.classList.toggle('on', x === b)); renderNotes(); }));
@@ -162,10 +170,10 @@
   function renderColl() {
     const grid = $('#collGrid');
     $('#collBadge').hidden = !coll.length; $('#collBadge').textContent = coll.length;
-    if (!coll.length) { grid.innerHTML = `<div class="empty"><big>🫙</big>Ta collection est vide.<br>Compose un parfum et touche <b>♡</b> pour le garder ici.</div>`; return; }
+    if (!coll.length) { grid.innerHTML = `<div class="empty"><span class="shape"></span>Ta collection est vide.<br>Compose un parfum et touche <b>Garder</b> pour le retrouver ici.</div>`; return; }
     grid.innerHTML = coll.map((c, i) => {
       const comp = rebuild(c);
-      return `<button class="ccard" data-k="${c.key}" style="animation-delay:${i * 60}ms"><div class="th">${Art.scene(comp.spec, { static: true })}<span class="bt">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</span></div><div><b>${comp.name}</b><div class="ac">${comp.accord}</div><div class="nn">${comp.notes.slice(0, 5).map(n => n.e + ' ' + n.n).join(' · ')}</div></div><span class="del" data-del="${c.key}" aria-label="Supprimer">🗑️</span></button>`;
+      return `<button class="ccard" data-k="${c.key}" style="animation-delay:${i * 60}ms"><div class="th">${Art.scene(comp.spec, { static: true })}<span class="bt">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</span></div><div><b>${comp.name}</b><div class="ac">${comp.accord}</div><div class="nn">${comp.notes.slice(0, 5).map(n => n.e + ' ' + n.n).join(' · ')}</div></div><span class="del" data-del="${c.key}" aria-label="Supprimer">✕</span></button>`;
     }).join('');
     $$('.ccard', grid).forEach(b => b.addEventListener('click', e => {
       const del = e.target.closest('[data-del]');
@@ -188,82 +196,76 @@
 
   /* ---------- laboratoire (animation de création) ---------- */
   let labAbort = null;
+  const FLASK = 'M82,20 H118 V84 C168,98 186,142 176,184 C168,226 136,246 100,246 C64,246 32,226 24,184 C14,142 32,98 82,84Z';
   function flaskSVG(cols) {
-    return `<svg viewBox="0 0 200 260" aria-hidden="true"><defs><clipPath id="lfc"><path d="M82,20 H118 V84 C168,98 186,142 176,184 C168,226 136,246 100,246 C64,246 32,226 24,184 C14,142 32,98 82,84Z"/></clipPath>` +
-      `<linearGradient id="lfg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".35" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity=".25"/></linearGradient></defs>` +
-      `<ellipse cx="100" cy="254" rx="62" ry="6" fill="#000" opacity=".35"/>` +
-      `<g clip-path="url(#lfc)"><rect class="layer" id="lyF" x="0" y="188" width="200" height="60" fill="${cols.F}"/><rect class="layer" id="lyC" x="0" y="136" width="200" height="54" fill="${cols.C}"/><rect class="layer" id="lyT" x="0" y="88" width="200" height="50" fill="${cols.T}"/><rect x="0" y="88" width="200" height="160" fill="url(#lfg)" opacity=".5"/></g>` +
-      `<path d="M82,20 H118 V84 C168,98 186,142 176,184 C168,226 136,246 100,246 C64,246 32,226 24,184 C14,142 32,98 82,84Z" fill="#fff" fill-opacity=".07" stroke="#fff" stroke-opacity=".7" stroke-width="2.4" stroke-linejoin="round"/>` +
-      `<path d="M44,150 C40,176 52,206 70,222" stroke="#fff" stroke-opacity=".6" stroke-width="5" stroke-linecap="round" fill="none"/>` +
-      `<rect x="76" y="6" width="48" height="18" rx="5" fill="#c9a06a"/><rect x="76" y="6" width="48" height="5" rx="2.5" fill="#fff" opacity=".35"/></svg>`;
+    const y = { T: 100, C: 146, F: 192 };
+    const wave = yy => `<g class="wavy"><path d="M-100,${yy} q25,-9 50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 V300 H-100Z"/></g>`;
+    const liq = L => `<g class="liq" id="ly${L}" style="--h:${300 - y[L]}px" fill="${cols[L]}">${wave(y[L])}</g>`;
+    return `<svg viewBox="0 0 200 260" aria-hidden="true"><defs><clipPath id="lfc"><path d="${FLASK}"/></clipPath></defs>` +
+      `<ellipse cx="100" cy="254" rx="62" ry="6" fill="#6a331f" opacity=".16"/>` +
+      `<g class="flask"><path d="${FLASK}" fill="#fff" fill-opacity=".62"/><g clip-path="url(#lfc)">${liq('T')}${liq('C')}${liq('F')}</g>` +
+      `<path d="${FLASK}" fill="none" stroke="#6a331f" stroke-opacity=".55" stroke-width="3" stroke-linejoin="round"/>` +
+      `<path d="M44,150 C40,176 52,206 70,222" stroke="#fff" stroke-opacity=".75" stroke-width="6" stroke-linecap="round" fill="none"/>` +
+      `<rect x="76" y="6" width="48" height="18" rx="5" fill="#d6a95a"/><rect x="76" y="16" width="48" height="8" rx="4" fill="#a97d34"/></g></svg>`;
   }
   async function runLab(comp) {
-    const lab = $('#lab'), stage = $('#labStage');
+    const lab = $('#lab'), stage = $('#labStage'), wipe = $('#labWipe');
     let aborted = false; labAbort = () => { aborted = true; };
-    const pal = comp.spec.pal;
-    lab.style.setProperty('--l1', Art.mix(pal[3], '#000', .35)); lab.style.setProperty('--l2', Art.mix(pal[1], pal[0], .4));
-    lab.style.setProperty('--l3', Art.shade(pal[2], -.1)); lab.style.setProperty('--l4', comp.layerColor.C);
-    $('#labEmoji').textContent = comp.emoji || '✨'; $('#labTitle').textContent = comp.name;
-    $('.lab-stars', lab).innerHTML = Array.from({ length: 36 }, () => `<i style="left:${rnd(0, 100).toFixed(1)}%;top:${rnd(0, 100).toFixed(1)}%;width:${rnd(1, 3).toFixed(1)}px;height:${rnd(1, 3).toFixed(1)}px;animation-delay:-${rnd(0, 3).toFixed(1)}s"></i>`).join('');
+    const pastel = (c, t) => Art.mix(c, '#fff6ee', t);
+    lab.style.setProperty('--lb0', pastel(comp.layerColor.C, .84)); lab.style.setProperty('--lb1', pastel(comp.layerColor.C, .7));
+    lab.style.setProperty('--lb2', pastel(comp.layerColor.F, .6)); lab.style.setProperty('--lb3', pastel(comp.layerColor.T, .68));
+    $('#labTitle').textContent = comp.name;
     stage.className = 'lab-stage'; stage.innerHTML = flaskSVG(comp.layerColor);
+    wipe.className = 'wipe';
     $$('.lab-dots i', lab).forEach(d => d.classList.remove('on'));
-    $$('.fly,.ringp,.bubble', lab).forEach(n => n.remove());
+    $$('.fly,.ringp', lab).forEach(n => n.remove());
     lab.hidden = false; lab.setAttribute('aria-hidden', 'false'); void lab.offsetWidth; lab.classList.add('show');
 
-    const phase = (t, s) => { $('#labPhase').innerHTML = `${t}<small>${s || ''}</small>`; };
+    const phase = (t, s) => { $('#labPhase').innerHTML = `<span class="ph">${t}<small>${s || ''}</small></span>`; };
     const dot = i => $$('.lab-dots i', lab)[i].classList.add('on');
-    const skip = $('#labSkip'); skip.onclick = () => { aborted = true; };
+    $('#labSkip').onclick = () => { aborted = true; };
     const wait = async ms => { const end = Date.now() + ms; while (Date.now() < end && !aborted) await sleep(40); };
     const quick = reduce ? .25 : 1;
 
-    // bulles continues
-    const bubbleTimer = setInterval(() => {
-      const r = stage.getBoundingClientRect(), lr = lab.getBoundingClientRect();
-      const b = document.createElement('i'); b.className = 'bubble';
-      const sz = rnd(4, 11);
-      b.style.cssText = `width:${sz}px;height:${sz}px;left:${r.left - lr.left + r.width * rnd(.3, .7)}px;top:${r.top - lr.top + r.height * rnd(.62, .9)}px;animation-duration:${rnd(1.6, 3).toFixed(1)}s;--bx:${rnd(-20, 20).toFixed(0)}px`;
-      lab.appendChild(b); setTimeout(() => b.remove(), 3200);
-    }, 260);
-
     phase('Évocation', comp.tag || 'On imagine l\'endroit…'); dot(0);
-    await wait(1100 * quick);
-    const labels = { T: ['Notes de tête', 'Les premières secondes'], C: ['Notes de cœur', 'Le caractère se dessine'], F: ['Notes de fond', 'La trace qui reste'] };
-    const ids = { T: 'lyT', C: 'lyC', F: 'lyF' };
-    for (const [li, L] of ['T', 'C', 'F'].entries()) {
+    await wait(1200 * quick);
+    // le liquide monte : fond, puis cœur, puis tête
+    const labels = { F: ['Notes de fond', 'La base se pose'], C: ['Notes de cœur', 'Le caractère se dessine'], T: ['Notes de tête', 'L\'éclat de l\'ouverture'] };
+    for (const [li, L] of ['F', 'C', 'T'].entries()) {
       if (aborted) break;
       const ns = comp.byLayer[L]; if (!ns.length) continue;
       phase(labels[L][0], ns.map(n => n.n.toLowerCase()).join(' · ')); dot(li + 1);
       const sr = stage.getBoundingClientRect(), lr = lab.getBoundingClientRect();
-      const tx = sr.left - lr.left + sr.width / 2, ty = sr.top - lr.top + sr.height * (L === 'T' ? .3 : L === 'C' ? .5 : .66);
+      const tx = sr.left - lr.left + sr.width / 2, ty = sr.top - lr.top + sr.height * .08;
       const flights = ns.map((n, i) => new Promise(res => {
         const el = document.createElement('div'); el.className = 'fly'; el.innerHTML = `${n.e}<span>${n.n}</span>`;
-        const side = i % 2 ? 1 : -1, sx = tx + side * rnd(lr.width * .22, lr.width * .42), sy = rnd(lr.height * .12, lr.height * .75);
-        el.style.left = '0px'; el.style.top = '0px'; el.style.opacity = '0'; lab.appendChild(el);
+        el.style.opacity = '0'; lab.appendChild(el);
+        const w = el.offsetWidth / 2, h = el.offsetHeight / 2;
+        const side = i % 2 ? 1 : -1, sx = tx + side * rnd(lr.width * .2, lr.width * .38), sy = rnd(lr.height * .22, lr.height * .62);
         setTimeout(() => {
           if (aborted) { el.remove(); return res(); }
           const a = el.animate([
-            { transform: `translate(${sx - 30}px,${sy}px) scale(.5)`, opacity: 0 },
-            { transform: `translate(${sx - 30}px,${sy - 20}px) scale(1.15)`, opacity: 1, offset: .25 },
-            { transform: `translate(${tx - 30}px,${ty - 20}px) scale(.35)`, opacity: .1 }
-          ], { duration: 820, easing: 'cubic-bezier(.55,0,.25,1)', fill: 'forwards' });
+            { transform: `translate(${sx - w}px,${sy - h + 30}px) scale(.6)`, opacity: 0 },
+            { transform: `translate(${sx - w}px,${sy - h}px) scale(1)`, opacity: 1, offset: .3 },
+            { transform: `translate(${tx - w}px,${ty - h}px) scale(.4)`, opacity: 0 }
+          ], { duration: 1000, easing: 'cubic-bezier(.5,0,.2,1)', fill: 'forwards' });
           a.onfinish = () => { el.remove(); res(); }; vibrate(6);
-        }, i * 240 * quick);
+        }, i * 260 * quick);
       }));
       await Promise.all(flights);
       if (aborted) break;
-      const ring = document.createElement('i'); ring.className = 'ringp'; ring.style.setProperty('--c', comp.layerColor[L]); ring.style.setProperty('--ry', ty / lr.height * 100 + '%'); lab.appendChild(ring); setTimeout(() => ring.remove(), 1100);
-      $('#' + ids[L]).classList.add('in');
-      await wait(750 * quick);
+      const ring = document.createElement('i'); ring.className = 'ringp'; ring.style.setProperty('--c', comp.layerColor[L]);
+      ring.style.setProperty('--ry', (ty / lr.height * 100) + '%'); lab.appendChild(ring); setTimeout(() => ring.remove(), 1500);
+      $('#ly' + L).classList.add('in');
+      await wait(1100 * quick);
     }
-    if (!aborted) { stage.classList.add('shake'); phase('Macération', 'Les notes s\'apprivoisent'); dot(3); vibrate([10, 30, 10]); await wait(1300 * quick); }
-    // finale
-    clearInterval(bubbleTimer);
-    $$('.layer', stage).forEach(l => l.classList.add('in'));
-    const fl = $('#labFlash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
-    await sleep(aborted ? 120 : 380);
+    if (!aborted) { stage.classList.add('shake'); phase('Macération', 'Les notes s\'apprivoisent'); dot(3); vibrate([10, 30, 10]); await wait(1400 * quick); }
+    $$('.liq', stage).forEach(l => l.classList.add('in'));
+    wipe.classList.add('go');
+    await sleep(aborted ? 450 : 950);
     labAbort = null;
     lab.classList.remove('show'); lab.setAttribute('aria-hidden', 'true');
-    setTimeout(() => { lab.hidden = true; $$('.fly,.ringp,.bubble', lab).forEach(n => n.remove()); }, 520);
+    setTimeout(() => { lab.hidden = true; $$('.fly,.ringp', lab).forEach(n => n.remove()); }, 650);
   }
 
   /* ---------- résultat ---------- */
@@ -282,15 +284,15 @@
     const st = comp.stats, maxP = Math.max.apply(null, comp.notes.map(n => n.pct));
     const catLabel = comp.cat && CAT[comp.cat] ? CAT[comp.cat].n : 'Création sur mesure';
     const tag = comp.tag || (comp.moods.length ? comp.moods.map(m => VS.MOODS.find(x => x[0] === m)[1].toLowerCase()).join(' · ') : 'Une composition rien que pour toi');
-    const tags = [].concat(comp.dirs.map(d => { const x = VS.DIRECTIONS.find(y => y[0] === d); return x[2] + ' ' + x[1]; }), comp.moods.map(m => { const x = VS.MOODS.find(y => y[0] === m); return x[2] + ' ' + x[1]; }));
+    const tags = [].concat(comp.dirs.map(d => VS.DIRECTIONS.find(y => y[0] === d)[1]), comp.moods.map(m => VS.MOODS.find(y => y[0] === m)[1]));
     const layers = ['T', 'C', 'F'].filter(l => comp.byLayer[l].length);
     const pyr = layers.map((L, i) => {
       const f1 = i / layers.length, f2 = (i + 1) / layers.length, c = comp.layerColor[L];
       const hw = f => 7 + 25 * f, pts = `${32 - hw(f1)},0 ${32 + hw(f1)},0 ${32 + hw(f2)},100 ${32 - hw(f2)},100`;
       const pct = comp.byLayer[L].reduce((a, n) => a + n.pct, 0);
-      return `<div class="tier rv" style="--d:${i * .08}s"><div class="pyr"><svg viewBox="0 0 64 100" preserveAspectRatio="none"><polygon points="${pts}" fill="${c}" stroke="#0d0a18" stroke-width="2" vector-effect="non-scaling-stroke" style="--d:${.2 + i * .25}s"/></svg></div>` +
+      return `<div class="tier rv" style="--d:${i * .08}s"><div class="pyr"><svg viewBox="0 0 64 100" preserveAspectRatio="none"><polygon points="${pts}" fill="${c}" stroke="#f8eadf" stroke-width="2" vector-effect="non-scaling-stroke" style="--d:${.2 + i * .25}s"/></svg></div>` +
         `<div class="body"><h3>${TIERS[L][0]}<span>${TIERS[L][1]}</span></h3><div class="pct">${pct} % de la formule</div>` +
-        comp.byLayer[L].map((n, k) => `<button class="ncard" data-note="${n.id}" style="--fc:${n.color};--w:${Math.max(6, Math.round(n.pct / maxP * 100))}%;--d:${(.25 + i * .2 + k * .08).toFixed(2)}s"><span class="ico">${n.e}</span><span><b>${n.n}</b><small>${n.d}</small></span><span class="p">${n.pct}%</span><i class="bar"></i></button>`).join('') +
+        comp.byLayer[L].map((n, k) => `<button class="ncard" data-note="${n.id}" style="--fc:${n.color};--w:${Math.max(6, Math.round(n.pct / maxP * 100))}%;--d:${(.25 + i * .2 + k * .08).toFixed(2)}s"><span class="ico">${n.e}</span><span><b>${n.n}</b><small>${n.d}</small></span><span class="p" data-count="${n.pct}" data-suf="%">0%</span><i class="bar"></i></button>`).join('') +
         `</div></div>`;
     }).join('');
     const C = 2 * Math.PI * 46; let cum = 0;
@@ -299,16 +301,16 @@
     const seasonKeys = ['printemps', 'ete', 'automne', 'hiver'];
     const mom = { jour: ['☀️', 'Journée'], soir: ['🌙', 'Soirée'], 'jour & soir': ['🌗', 'Jour & soir'] }[st.moment];
     const rel = relatedScenes(comp);
-    return `<div class="res-hero"><div class="art-bg" id="heroArt">${Art.scene(comp.spec)}</div><div class="res-top"><button class="round" id="rBack" aria-label="Retour">←</button><span></span></div></div>` +
+    return `<div class="res-hero"><div class="art-bg" id="heroArt">${Art.scene(comp.spec)}</div><div class="res-top"><button class="round" id="rBack" aria-label="Retour">←</button><span></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
       `<div class="res-bottle">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</div>` +
-      `<div class="res-title"><div class="badge">${comp.emoji || '✨'} ${catLabel}</div><h1>${comp.name}</h1><p class="tg">${tag}</p><span class="accord">${comp.accord}</span></div>` +
+      `<div class="res-title"><div class="badge">${catLabel}</div><h1>${comp.name}</h1><p class="tg">${tag}</p><span class="accord">${comp.accord}</span></div>` +
       `<section class="sec rv"><h2>L'histoire</h2><div class="story"><p>${comp.story}</p>${tags.length ? `<div class="tags">${tags.map(t => `<span>${t}</span>`).join('')}</div>` : ''}</div></section>` +
       `<section class="sec"><h2 class="rv">Pyramide olfactive</h2><p class="sub rv">Touche une note pour la découvrir.</p>${pyr}</section>` +
       `<section class="sec rv"><h2>Palette de senteurs</h2><div class="donut-w"><div class="donut"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="15"/>${segs}</svg><div class="mid"><small>dominante</small><b>${comp.families[0].n}</b></div></div><div class="leg">${legend}</div></div></section>` +
       `<section class="sec rv"><h2>Signature</h2><div class="gauges"><div class="g"><div class="row"><span>Intensité</span><b>${st.intensity} / 10</b></div><div class="track"><div class="fill" style="--w:${st.intensity * 10}%"></div></div></div><div class="g"><div class="row"><span>Tenue</span><b>≈ ${st.hours} h</b></div><div class="track"><div class="fill" style="--w:${Math.round(st.hours / 14 * 100)}%"></div></div></div><div class="g"><div class="row"><span>Sillage</span><b>${st.sillage}</b></div><div class="track"><div class="fill" style="--w:${st.sillageV}%"></div></div></div></div>` +
-      `<div class="sig2"><div class="box"><h4>Saisons</h4><div class="seasons">${seasonKeys.map(k => `<span class="${st.best.includes(k) ? 'on' : ''}"><i>${SEASON[k][0]}</i>${SEASON[k][1]}</span>`).join('')}</div></div><div class="box"><h4>Moment</h4><div class="moment"><span>${mom[0]}</span>${mom[1]}</div></div></div>` +
-      `<div class="box" style="margin-top:12px"><h4>Cohérence de l'accord</h4><div class="harm"><div class="ring"><svg viewBox="0 0 80 80"><circle class="tr" cx="40" cy="40" r="34"/><circle class="pg" cx="40" cy="40" r="34" style="--hd:${(st.harmony / 100 * 213.6).toFixed(1)}"/></svg><b>${st.harmony}%</b></div><p>Les familles de cette formule s'accordent entre elles&nbsp;: aucune note ne vient contredire l'ensemble.</p></div></div></section>` +
-      `<section class="sec rv"><h2>Dans la même veine</h2><div class="rel">${rel.map(s => `<button class="hcard" data-sc="${s.id}"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span><div class="cap">${s.n}</div></button>`).join('')}</div></section>`;
+      `<div class="sig2"><div class="box"><h4>Saisons</h4><div class="seasons">${seasonKeys.map(k => `<span class="${st.best.includes(k) ? 'on' : ''}">${SEASON[k][1]}</span>`).join('')}</div></div><div class="box"><h4>Moment</h4><div class="moment">${mom[1]}</div></div></div>` +
+      `<div class="box" style="margin-top:12px"><h4>Cohérence de l'accord</h4><div class="harm"><div class="ring"><svg viewBox="0 0 80 80"><circle class="tr" cx="40" cy="40" r="34"/><circle class="pg" cx="40" cy="40" r="34" style="--hd:${(st.harmony / 100 * 213.6).toFixed(1)}"/></svg><b data-count="${st.harmony}" data-suf="%">0%</b></div><p>Les familles de cette formule s'accordent entre elles&nbsp;: aucune note ne vient contredire l'ensemble.</p></div></div></section>` +
+      `<section class="sec rv"><h2>Dans la même veine</h2><div class="rel">${rel.map(s => `<button class="hcard" data-sc="${s.id}"><div class="pic"><div class="art-w" data-art="${s.id}"></div><span class="em">${s.e}</span></div><b>${s.n}</b></button>`).join('')}</div></section>`;
   }
   function openResult(comp, reveal) {
     current = comp;
@@ -316,22 +318,26 @@
     wrap.hidden = false; wrap.setAttribute('aria-hidden', 'false');
     sc.innerHTML = resultHTML(comp); sc.scrollTop = 0;
     sc.classList.toggle('reveal', !!reveal);
-    $('#resBar').innerHTML = `<button class="round save${isSaved(comp.key) ? ' on' : ''}" id="rSave" aria-label="Enregistrer">${isSaved(comp.key) ? '♥' : '♡'}</button><button class="btn glass" id="rMix">🎲 Variation</button><button class="btn primary" id="rShare">↗ Partager</button>`;
+    $('#resBar').innerHTML = `<button class="btn soft${isSaved(comp.key) ? ' on' : ''}" id="rSave">${isSaved(comp.key) ? 'Gardé' : 'Garder'}</button><button class="btn soft" id="rMix">Variation</button><button class="btn primary" id="rShare">Partager</button>`;
     lazyArt(sc);
     void wrap.offsetWidth; wrap.classList.add('show');
     if (!resultOpen) { try { history.pushState({ r: 1 }, ''); } catch (e) { /* ignore */ } resultOpen = true; }
     // révélation au scroll
-    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { root: sc, threshold: .12 });
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); $$('[data-count]', e.target).forEach(countUp); io.unobserve(e.target); } }), { root: sc, threshold: .12 });
     $$('.rv', sc).forEach(el => io.observe(el));
     // parallaxe
     const art = $('#heroArt'); let tick = false;
     sc.onscroll = () => { if (tick) return; tick = true; requestAnimationFrame(() => { const y = sc.scrollTop; if (y < 700) art.style.transform = `translateY(${y * .38}px) scale(${1 + y / 2200})`; tick = false; }); };
     $('#rBack').onclick = () => closeResult();
-    $('#rSave').onclick = e => { toggleSave(comp); const b = e.currentTarget; b.classList.remove('on'); void b.offsetWidth; b.classList.toggle('on', isSaved(comp.key)); b.textContent = isSaved(comp.key) ? '♥' : '♡'; vibrate(15); };
+    $('#rSave').onclick = e => { toggleSave(comp); const b = e.currentTarget; b.classList.toggle('on', isSaved(comp.key)); b.textContent = isSaved(comp.key) ? 'Gardé' : 'Garder'; vibrate(15); };
     $('#rShare').onclick = () => share(comp);
     $('#rMix').onclick = () => remix(comp);
     $$('.ncard', sc).forEach(b => b.addEventListener('click', () => openSheet(b.dataset.note, comp)));
     if (reveal) setTimeout(() => confetti(comp), 1500);
+  }
+  function countUp(el) {
+    const to = +el.dataset.count, suf = el.dataset.suf || '', t0 = performance.now(), d = 1300, delay = 350;
+    (function f(t) { const k = Math.max(0, Math.min(1, (t - t0 - delay) / d)), e = 1 - Math.pow(1 - k, 3); el.textContent = Math.round(to * e) + suf; if (k < 1) requestAnimationFrame(f); })(t0);
   }
   function closeResult(fromPop) {
     const wrap = $('#result'); if (!resultOpen) return;
@@ -346,12 +352,11 @@
     const r = $('.res-bottle', wrap); if (!r) return;
     const br = r.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
     const cx = br.left - wr.left + br.width / 2, cy = br.top - wr.top + br.height * .35;
-    const em = comp.notes.map(n => n.e);
-    for (let i = 0; i < 18; i++) {
-      const el = document.createElement('span'); el.className = 'conf'; el.textContent = em[i % em.length];
-      const a = rnd(0, Math.PI * 2), d = rnd(70, 190);
-      el.style.cssText = `left:${cx}px;top:${cy}px;--tx:${Math.cos(a) * d}px;--ty:${Math.sin(a) * d - 60}px;--rot:${rnd(-80, 80)}deg;animation-delay:${i * 25}ms`;
-      wrap.appendChild(el); setTimeout(() => el.remove(), 2600);
+    for (let i = 0; i < 20; i++) {
+      const el = document.createElement('span'); el.className = 'conf';
+      const a = rnd(0, Math.PI * 2), d = rnd(70, 200);
+      el.style.cssText = `left:${cx}px;top:${cy}px;--sz:${rnd(8, 24).toFixed(0)}px;--cc:${comp.notes[i % comp.notes.length].color};--tx:${Math.cos(a) * d}px;--ty:${Math.sin(a) * d - 60}px;animation-delay:${i * 30}ms`;
+      wrap.appendChild(el); setTimeout(() => el.remove(), 2800);
     }
     vibrate([12, 40, 12]);
   }
@@ -390,7 +395,7 @@
       `<div class="kv"><div><b>Dans la formule</b>${n.pct} %</div><div><b>Apparaît</b>${TIERS[n.l][1]}</div></div>` +
       `<p><b>${n.n}</b> : ${n.d}.</p><p>${ROLE[n.l]}</p>` +
       (partners.length ? `<h5>Se marie ici avec</h5><div class="tags">${partners.map(p => `<span>${p.e} ${p.n}</span>`).join('')}</div>` : '') +
-      `<h5>Ambiances</h5><div class="tags">${moods.map(m => `<span>${m[2]} ${m[1]}</span>`).join('')}</div>` +
+      `<h5>Ambiances</h5><div class="tags">${moods.map(m => `<span>${m[1]}</span>`).join('')}</div>` +
       (cousins.length ? `<h5>Cousines olfactives (${FAM[n.f].n.toLowerCase()})</h5><div class="tags">${cousins.map(p => `<span>${p.e} ${p.n}</span>`).join('')}</div>` : '');
     const w = $('#sheetWrap'); w.hidden = false; void w.offsetWidth; w.classList.add('show'); vibrate(8);
   }
@@ -405,9 +410,9 @@
   /* ---------- écran d'ouverture ---------- */
   function splash() {
     const s = document.createElement('div'); s.id = 'splash';
-    s.innerHTML = `<div class="sp-in">${Art.bottle({ cols: ['#f6c945', '#e88fb8', '#8a5a3b'], shares: [.25, .35, .4] })}<h1>Voyage des Sens</h1><p>Imagine un lieu. Respire-le.</p></div>`;
+    s.innerHTML = `<div class="blobs">${blobsSVG()}</div><div class="sp-in">${Art.bottle({ cols: ['#f6c945', '#e88fb8', '#8a5a3b'], shares: [.25, .35, .4] })}<h1>Voyage des Sens</h1><p>Imagine un lieu. Respire-le.</p></div>`;
     $('#app').appendChild(s);
-    setTimeout(() => { s.classList.add('out'); setTimeout(() => s.remove(), 800); }, reduce ? 300 : 1700);
+    setTimeout(() => { s.classList.add('out'); setTimeout(() => s.remove(), 1100); }, reduce ? 300 : 1900);
   }
 
   /* ---------- init ---------- */
