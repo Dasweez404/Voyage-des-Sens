@@ -173,7 +173,7 @@ void main(){
     let ry = -.42, vel = 0, drag = false, lx = 0, rip0 = -1e9, ripAmp = 0, scale = Math.min(window.devicePixelRatio || 1, 1.6), slow = 0, frames = 0, tPrev = performance.now(), visible = true, dead = false;
     const api = {
       rise(L) { tween(S.p, L, 1, reduce ? 300 : 2600); },
-      drop(L) { rip0 = performance.now(); ripAmp = .9; V[3] += .5; V[4] += .5; },
+      drop(L) { rip0 = performance.now(); ripAmp = .003 + .010 * force; V[3] += .05 * force; V[4] += .05 * force; },   // une goutte ne fait qu'une ride : proportionnelle à la force, presque nulle à 0
       shake() {                                           // trois impulsions qui s'inversent : le liquide va et vient et cogne les parois
         const a = Math.random() * 6.283, now = performance.now(), M = 1 + 7 * force;
         [[0, 1], [280, -.8], [560, .5], [820, -.3]].forEach(([d, g]) => pulses.push({ t0: now + d, ax: Math.cos(a) * M * g, az: Math.sin(a) * M * g }));
