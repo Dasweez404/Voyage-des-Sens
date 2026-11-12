@@ -4,8 +4,11 @@
   const VS = G.VS, NOTES = VS.NOTES, FAM = VS.FAMILIES, Art = VS.Art;
 
   const LAYERS = ['T', 'C', 'F'];
-  const LAYER_SHARE = { T: .24, C: .36, F: .40 };
-  const RANK_W = [1, .78, .6, .46, .36, .3];
+  const LAYER_SHARE = { T: .27, C: .38, F: .35 };
+  const RANK_W = [1, .82, .68, .57, .48, .4];
+  // notes très situationnelles : jamais proposées d'office dans une création sur mesure (seulement si tu les choisis)
+  const ODD = new Set(['alcool', 'desinfectant', 'essence', 'soufre', 'vernis', 'laque', 'peinture', 'plastique', 'metal', 'goudron', 'charbon', 'silex', 'asphalte', 'beton', 'caoutchouc', 'gomme', 'colle', 'lave']);
+  const SAVORY = new Set(['kebab', 'hamburger', 'frites', 'bacon', 'saucisse', 'ail', 'oignonfrit', 'ketchup', 'moutarde', 'vinaigre', 'cornichon', 'grillade', 'poivrongrille', 'chipsoignon', 'chipsfromage', 'chipspoulet', 'chipsbbq', 'chipspaprika', 'chipsnature', 'chipsvinaigre', 'fromage', 'chevre', 'camembert', 'parmesan', 'nori', 'miso', 'soja', 'nouilles', 'bouillon', 'tomatecuite', 'patatefour', 'mais', 'barbecue', 'bretzel', 'cracker', 'mozzarella', 'vinaigreriz', 'wasabi', 'patepizza', 'friture']);
   const FIXATIVES = new Set(['bo', 'am', 'mu', 're', 'go', 'te', 'cr', 'co']);
 
   const strip = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -186,6 +189,7 @@
     o = o || {};
     const moods = (o.moods || []).slice(), dirs = (o.dirs || []).slice();
     const EXC = VS.EXCL || new Set();
+    const wantSavory = (o.picks || []).some(id => NOTES[id] && (SAVORY.has(id) || ODD.has(id)));
     const picks = (o.picks || []).map(id => NOTES[id]).filter(n => n && !EXC.has(n.id));
     const seed = o.seed != null ? o.seed : Math.floor(Math.random() * 1e9);
     const r = Art.rngf(seed);
@@ -209,6 +213,7 @@
       all().forEach(c => { const p = VS.pairScore(n.f, c.f); coh += p; if (p < 0) bad++; });
       s += coh * .85 - bad * 2.6;
       picks.forEach(p => { s += VS.pairScore(n.f, p.f) * .9; });
+      if (!picks.includes(n)) { if (ODD.has(n.id)) s -= 3.2; if (SAVORY.has(n.id) && !wantSavory) s -= 2.4; }
       const same = chosen[layer].filter(c => c.f === n.f).length;
       s -= same * 1.6;
       const sameAll = all().filter(c => c.f === n.f).length;
@@ -241,7 +246,10 @@
 
     // nom
     const all2 = build(ids, { dirs, moods });
-    const lead = [].concat(all2.byLayer.C, all2.byLayer.T).sort((a, b) => b.pct - a.pct)[0];
+    // le nom s'appuie sur une senteur « nommable » (fleur, fruit, bois, ambre, musc…), pas sur une épice ou un ingrédient de cuisine
+    const NAMEW = { fl: 1, fr: 1, ag: .95, bo: 1, am: 1, re: .9, mu: .95, ve: .85, ma: .9, go: .75, co: .6, bv: .5, ar: .5, ep: .45, te: .45, cr: .5, cu: .3, mi: .3 };
+    const pool = [].concat(all2.byLayer.C, all2.byLayer.T).filter(n => !ODD.has(n.id) && !SAVORY.has(n.id));
+    const lead = (pool.length ? pool : [].concat(all2.byLayer.C, all2.byLayer.T)).sort((a, b) => b.pct * (NAMEW[b.f] || .5) - a.pct * (NAMEW[a.f] || .5))[0];
     const key = dirs[0] || moods[0] || 'rec';
     const pref = pick(PREFIX[key] || PREFIX.rec, r);
     const name = o.name || (pref + ' ' + de(lead.n));

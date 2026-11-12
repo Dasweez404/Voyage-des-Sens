@@ -33,7 +33,9 @@ impose toujours un fond tenace, calcule les pourcentages et un indice de cohére
 Les lieux préfaits sont écrits à la main avec les mêmes règles.
 
 ```bash
-node tools/validate.js    # vérifie ids, couches, pourcentages, motifs d'illustration, harmonie
+node tools/validate.js    # ids, couches (3 à 5 notes par temps), aucune note > 16 %, motifs, harmonie, préférences
+node tools/audit.js notes # relecture du catalogue par famille et par temps
+node tools/audit.js scenes # relecture de toutes les formules
 ```
 
 ## Structure

@@ -16,7 +16,8 @@ VS.SCENES.forEach(sc => {
   sc.notes.forEach(id => { if (!VS.NOTES[id]) { console.log('note inconnue', sc.id, id); bad++; } });
   const c = VS.Engine.fromScene(sc);
   const cnt = 'TCF'.split('').map(l => c.byLayer[l].length);
-  if (cnt.some(x => x < 2)) { console.log('couche pauvre', sc.id, cnt); bad++; }
+  if (cnt.some(x => x < 3) || cnt.some(x => x > 5)) { console.log('équilibre des temps (3 à 5 notes par temps)', sc.id, cnt); bad++; }
+  const mxp = Math.max(...c.notes.map(n => n.pct)); if (mxp > 16) { console.log('une note domine trop', sc.id, mxp); bad++; }
   const sum = c.notes.reduce((a, n) => a + n.pct, 0);
   if (sum !== 100) { console.log('pct != 100', sc.id, sum); bad++; }
   const svg = VS.Art.scene(c.spec);

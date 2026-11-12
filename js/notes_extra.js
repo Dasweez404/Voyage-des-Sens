@@ -230,4 +230,18 @@ brouillard|Brouillard|ma|T|🌫️|apa,mys,fra|gris, humide, froid
 fleurdesel|Fleur de sel|ma|C|🧂|sal,fra,voy|cristaux blancs, marais salants
 cuirselle|Cuir de selle|cr|F|🐴|sau,cha,nos|cuir ciré, foin, écurie
 fourrure|Fourrure|cr|F|🧥|lux,cha,sau,dou|poil chaud, animal doux
+ciste|Ciste ladanifère|am|F|🌿|cha,mys,sau|résine de garrigue, ambrée
+ambrette|Ambrette|am|F|🌰|dou,lux,pou|graine musquée, poire et poudre
+amblonde|Ambre blond|am|F|🟡|cha,dou,lux,lum|ambre clair, miel, poudré
+ambrenoir|Ambre noir|am|F|⚫|mys,int,cha|ambre profond, résine, fumé
+feuilleviolette|Feuille de violette|ve|T|🍃|fra,sau,dou|verte, aqueuse, concombre
+lierre|Lierre|ve|T|🌿|fra,sau,dec|feuille froide, murs de pierre
+feuillegeranium|Feuille de géranium|ve|C|🌿|fra,sau,dec|verte, mentholée, rosée
+orgevert|Orge verte|ve|C|🌾|apa,fra,dou|jeune blé, herbe tendre
+cade|Bois de cade|bo|F|🪵|fum,sau,mys|genévrier brûlé, cuiré
+cedreatlas|Cèdre de l'Atlas|bo|F|🌲|cha,apa,dec,exo|cèdre chaud, résineux, marocain
+hetre|Hêtre|bo|C|🪵|apa,rec,dou|bois clair, doux, fendu
+palissandre|Palissandre|bo|F|🪵|lux,cha,rom|bois rosé, précieux, épicé
+ebene|Ébène|bo|F|🪵|mys,lux,int|bois noir, sec, précieux
+oliviersbois|Bois d'olivier|bo|C|🪵|dec,voy,cha|bois dense, sec, méditerranéen
 `;
