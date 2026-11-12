@@ -6,7 +6,7 @@
   const LAYERS = ['T', 'C', 'F'];
   const LAYER_SHARE = { T: .24, C: .36, F: .40 };
   const RANK_W = [1, .78, .6, .46, .36, .3];
-  const FIXATIVES = new Set(['bo', 'am', 'mu', 're', 'go', 'te', 'cr']);
+  const FIXATIVES = new Set(['bo', 'am', 'mu', 're', 'go', 'te', 'cr', 'co']);
 
   const strip = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const pick = (arr, r) => arr[Math.floor(r() * arr.length)];
@@ -76,9 +76,9 @@
 
     const seasonDef = {
       printemps: { fam: ['fl', 've', 'ag', 'fr'], tags: ['dou', 'fra', 'rom', 'lum'] },
-      ete: { fam: ['ag', 'ma', 'fr', 'ar'], tags: ['fra', 'lum', 'sal', 'joy', 'exo'] },
+      ete: { fam: ['ag', 'ma', 'fr', 'ar', 'bv'], tags: ['fra', 'lum', 'sal', 'joy', 'exo'] },
       automne: { fam: ['bo', 'te', 'go', 'ep', 'cu'], tags: ['rec', 'nos', 'cha', 'dou'] },
-      hiver: { fam: ['am', 're', 'cr', 'go', 'ep'], tags: ['cha', 'rec', 'mys', 'int', 'fum'] }
+      hiver: { fam: ['am', 're', 'cr', 'go', 'ep', 'co'], tags: ['cha', 'rec', 'mys', 'int', 'fum'] }
     };
     const seasons = Object.keys(seasonDef).map(k => {
       const d = seasonDef[k];

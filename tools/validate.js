@@ -1,7 +1,7 @@
 // Vérifie la cohérence des données (ids, couches, harmonie) — node tools/validate.js
 const fs = require('fs'), path = require('path'), vm = require('vm');
 global.window = global;
-for (const f of ['notes', 'scenes', 'art', 'engine']) vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8'), { filename: f });
+for (const f of ['notes_extra', 'notes', 'scenes', 'art', 'engine']) vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8'), { filename: f });
 const VS = global.VS; let bad = 0;
 console.log('notes:', VS.NOTE_LIST.length, 'lieux:', VS.SCENES.length);
 const seen = new Set(VS.NOTE_LIST.map(n => n.id));

@@ -20,7 +20,9 @@
     ma: { n: 'Aquatique', c: '#4fb3d9', e: '🌊' },
     te: { n: 'Terreux', c: '#7a6a4f', e: '🍄' },
     cr: { n: 'Cuiré-Fumé', c: '#6a4338', e: '🔥' },
-    mi: { n: 'Minéral', c: '#9fb0bd', e: '🪨' }
+    mi: { n: 'Minéral', c: '#9fb0bd', e: '🪨' },
+    bv: { n: 'Boissons & sirops', c: '#3fc8c0', e: '🥤' },
+    co: { n: 'Confiseries', c: '#ff7eb6', e: '🍭' }
   };
 
   // Ambiances (adjectifs) et directions : ce sont aussi les « tags » des notes
@@ -43,8 +45,9 @@
   const AFF = ('ag-ar,ag-ve,ag-fl,ag-ma,ag-bo,ag-ep,ag-mu,fr-fl,fr-go,fr-mu,fr-ag,fr-ve,fr-am,fl-mu,fl-bo,fl-ve,fl-am,fl-ep,fl-go,fl-re,' +
     'ar-bo,ar-ve,ar-te,ar-re,ar-mu,ar-ma,ar-ep,ep-am,ep-bo,ep-go,ep-re,ep-cr,ep-cu,ep-ag,go-am,go-bo,go-mu,go-re,go-cr,go-cu,' +
     'bo-am,bo-re,bo-mu,bo-te,bo-cr,bo-ma,re-am,re-cr,re-te,re-mu,am-mu,am-cr,ma-mu,ma-mi,ve-ma,ve-mi,ve-te,mi-bo,mi-mu,te-cr,te-mi,' +
-    'cu-am,cu-bo,cu-ar,cu-te,cr-mu,mi-ag').split(',');
-  const CLASH = ('ma-go,ma-am,ma-ep,ma-cr,ma-cu,ag-te,ve-am,cu-fl,cu-mu,fl-cr,ma-re').split(',');
+    'cu-am,cu-bo,cu-ar,cu-te,cr-mu,mi-ag,' +
+    'bv-ag,bv-fr,bv-go,bv-ar,bv-fl,bv-ep,bv-co,bv-am,bv-cr,bv-bo,bv-ve,bv-mu,co-go,co-fr,co-fl,co-mu,co-am,co-ag,co-cu').split(',');
+  const CLASH = ('ma-go,ma-am,ma-ep,ma-cr,ma-cu,ag-te,ve-am,cu-fl,cu-mu,fl-cr,ma-re,co-ma,co-te,co-cr,bv-te,bv-re').split(',');
   const pairKey = (a, b) => (a < b ? a + '-' + b : b + '-' + a);
   const AFFSET = new Set(AFF.map(p => { const [a, b] = p.split('-'); return pairKey(a, b); }));
   const CLASHSET = new Set(CLASH.map(p => { const [a, b] = p.split('-'); return pairKey(a, b); }));
@@ -382,9 +385,12 @@ chlore|Chlore|mi|T|🏊|fra,nos,joy,sal|piscine, javel douce, été
 
   const NOTES = {};
   const LIST = [];
-  RAW.trim().split('\n').forEach(line => {
+  // bonbons et sucreries : famille « Confiseries »
+  const CANDY = new Set(['barbapapa', 'bonbon', 'chewinggum', 'guimauve', 'nougat', 'sucreglace', 'meringue']);
+  (RAW + (G.VS_EXTRA_RAW || '')).trim().split('\n').forEach(line => {
     const p = line.split('|');
     if (p.length < 7) return;
+    if (CANDY.has(p[0])) p[2] = 'co';
     const note = { id: p[0], n: p[1], f: p[2], l: p[3], e: p[4], t: p[5].split(','), d: p[6] };
     NOTES[note.id] = note;
     LIST.push(note);

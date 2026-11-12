@@ -15,9 +15,9 @@ Sur téléphone : « Ajouter à l'écran d'accueil » pour l'installer (le servi
 
 ## Contenu
 
-- **66 lieux préfaits** : Intérieurs (chalet, bibliothèque, hôpital, gare, école…), Particuliers (station-service,
+- **83 lieux préfaits** : Intérieurs (chalet, bibliothèque, hôpital, gare, école…), Particuliers (station-service,
   fête foraine, cirque, ferme…), Voyage (marché oriental, volcan, jungle, pizzeria new-yorkaise…) et Souvenirs.
-- **320 senteurs** réparties en 16 familles (hespéridés, floraux, boisés, gourmands, marins, minéraux…).
+- **549 senteurs** réparties en 18 familles (hespéridés, floraux, boisés, gourmands, marins, minéraux, boissons & sirops, confiseries…) : cola, grenadine, chips paprika, pop-corn, barbe à papa, violette, caramel, cuir….
 - **Création sur mesure** : texte libre, directions (nostalgie, découverte, voyage, exotisme), 18 ambiances,
   senteurs au choix, richesse de la formule.
 - Collection locale, variation d'un parfum, partage de la formule.
@@ -37,8 +37,9 @@ node tools/validate.js    # vérifie ids, couches, pourcentages, motifs d'illust
 
 | Fichier | Rôle |
 | --- | --- |
-| `js/notes.js` | familles, ambiances, règles d'accords, 320 notes |
-| `js/scenes.js` | 66 lieux (palette, illustration, notes) |
+| `js/notes_extra.js` | boissons, sirops, chips, snacks, confiseries, pâtisseries, fleurs, quotidien |
+| `js/notes.js` | familles, ambiances, règles d'accords, 549 notes |
+| `js/scenes.js` | 83 lieux (palette, illustration, notes) |
 | `js/art.js` | moteur d'illustrations SVG animées + flacon (aucune image externe) |
 | `js/engine.js` | composition, statistiques, histoire, analyse du texte libre |
 | `js/app.js` | écrans, animation de création, résultat, collection |
