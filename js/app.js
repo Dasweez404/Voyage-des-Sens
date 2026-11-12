@@ -1,7 +1,7 @@
 /* Voyage des Sens — interface */
 (function () {
   'use strict';
-  const BUILD = '2611121450';
+  const BUILD = '2611121502';
   // page et scripts de versions différentes (cache) : on repart d'un état propre, une seule fois
   (function guard() {
     const meta = document.querySelector('meta[name="vs-build"]');
@@ -31,7 +31,8 @@
 
   const state = { tab: 'home', cat: 'all', q: '', dirs: new Set(), moods: new Set(), picks: [], sub: 'all', fam: 'all', nq: '', rich: 1, text: '' };
   let coll = store.get('vs.coll', []);
-  let bottle3d = store.get('vs.b3d', false) === true;   // flacon en 3D (réglable dans les préférences)
+  // flacon : plat (SVG), 3D (CSS) ou 3D liquide (WebGL) — réglable dans les préférences
+  let bottleKind = (v => v === true || v === 'css' ? 'css' : v === 'gl' ? 'gl' : 'flat')(store.get('vs.b3d', 'flat'));
   let mode = store.get('vs.mode', 'parfum') === 'huile' ? 'huile' : 'parfum';   // format : parfum ou huiles essentielles
   document.documentElement.classList.toggle('eo', mode === 'huile');
   let current = null;          // composition affichée
@@ -429,6 +430,17 @@
   /* ---------- laboratoire (animation de création) ---------- */
   let labAbort = null;
   const FLASK = 'M82,20 H118 V84 C168,98 186,142 176,184 C168,226 136,246 100,246 C64,246 32,226 24,184 C14,142 32,98 82,84Z';
+  function bottleHTML(comp, lab) {
+    const o = { lab, cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) };
+    if (bottleKind === 'gl' && VS.BottleGL.ok()) return VS.BottleGL.html(o);
+    if (bottleKind !== 'flat') return VS.Bottle3D.html(o);
+    return lab ? flaskSVG(comp) : Art.bottle(o);
+  }
+  // monte le flacon 3D ou liquide ; renvoie l'API WebGL (ou null)
+  function mountBottle(root) {
+    VS.Bottle3D.mount(root);
+    return VS.BottleGL.ok() ? VS.BottleGL.mount(root) : null;
+  }
   const flaskSVG = comp => Art.flask({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) });
   async function runLab(comp) {
     const lab = $('#lab'), stage = $('#labStage'), wipe = $('#labWipe');
@@ -437,8 +449,8 @@
     lab.style.setProperty('--lb0', pastel(comp.layerColor.C, .84)); lab.style.setProperty('--lb1', pastel(comp.layerColor.C, .7));
     lab.style.setProperty('--lb2', pastel(comp.layerColor.F, .6)); lab.style.setProperty('--lb3', pastel(comp.layerColor.T, .68));
     $('#labTitle').textContent = comp.name;
-    stage.className = 'lab-stage'; stage.innerHTML = bottle3d ? VS.Bottle3D.html({ lab: true, cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) }) : flaskSVG(comp);
-    if (bottle3d) VS.Bottle3D.mount(stage);
+    stage.className = 'lab-stage'; stage.innerHTML = bottleHTML(comp, true);
+    const gla = mountBottle(stage);
     wipe.className = 'wipe';
     $$('.lab-dots i', lab).forEach(d => d.classList.remove('on'));
     $$('.fly,.ringp', lab).forEach(n => n.remove());
@@ -451,8 +463,9 @@
     const quick = reduce ? .25 : 1;
     const b3 = stage.querySelector('.b3d');
     // montée du liquide et goutte qui tombe : version plate (SVG) ou 3D
-    const rise = L => { if (b3) b3.classList.add('in' + L); else $('#ly' + L).classList.add('in'); stage.classList.add('has-' + L); };
+    const rise = L => { if (gla) gla.rise(L); else if (b3) b3.classList.add('in' + L); else $('#ly' + L).classList.add('in'); stage.classList.add('has-' + L); };
     const dropIn = L => {
+      if (gla) { gla.drop(L); return; }
       if (b3) {
         const fit = $('.b3d-fit', b3), dp = document.createElement('i'); dp.className = 'drp3'; dp.style.setProperty('--c', comp.layerColor[L]);
         dp.style.setProperty('--fall', (VS.Bottle3D.surfaceY(b3, L) - 66) + 'px'); fit.appendChild(dp);
@@ -500,9 +513,10 @@
       if (aborted) break;
       await wait(800 * quick);
     }
-    if (!aborted) { phase('Mise en flacon', 'Le bouchon se referme, les notes s\'apprivoisent'); dot(3); stage.classList.add('closed'); vibrate([10, 30, 10]); await wait(2300 * quick); }
+    if (!aborted) { phase('Mise en flacon', 'Le bouchon se referme, les notes s\'apprivoisent'); dot(3); stage.classList.add('closed'); if (gla) gla.close(); vibrate([10, 30, 10]); await wait(2300 * quick); }
     $$('.liq', stage).forEach(l => l.classList.add('in'));
     if (b3) b3.classList.add('inF', 'inC', 'inT');
+    if (gla) gla.fillAll();
     wipe.classList.add('go');
     await sleep(aborted ? 450 : 950);
     labAbort = null;
@@ -557,7 +571,7 @@
     const mom = { jour: ['☀️', 'Journée'], soir: ['🌙', 'Soirée'], 'jour & soir': ['🌗', 'Jour & soir'] }[st.moment];
     const rel = relatedScenes(comp);
     return `<div class="res-left"><div class="res-hero"><div class="art-bg" id="heroArt">${Art.scene(comp.spec)}</div><div class="res-top"><button class="round" id="rBack" aria-label="Retour">←</button><span class="top-actions"><button class="pill" id="rMix">Variation</button><button class="pill" id="rShare">Partager</button></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
-      `<div class="res-bottle${bottle3d ? ' is3d' : ''}">${(bottle3d ? VS.Bottle3D.html : Art.bottle)({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</div>` +
+      `<div class="res-bottle${bottleKind !== 'flat' ? ' is3d' : ''}">${bottleHTML(comp, false)}</div>` +
       `<div class="res-title"><div class="badge">${catLabel}${comp.fmt === 'huile' ? ' · Huiles essentielles' : ''}</div><h1>${comp.name}</h1><p class="tg">${tag}</p><span class="accord">${comp.accord}</span></div>` +
       `</div><div class="res-right"><section class="sec rv"><h2>L'histoire</h2>${adaptHTML(comp)}<div class="story"><p>${comp.story}</p>${tags.length ? `<div class="tags">${tags.map(t => `<span>${t}</span>`).join('')}</div>` : ''}</div></section>` +
       `<section class="sec"><h2 class="rv">Pyramide olfactive</h2><p class="sub rv">Touche une note pour la découvrir.</p>${pyr}</section>` +
@@ -577,7 +591,7 @@
     $$('.sec>h2', sc).forEach(Motion.splitWords); Motion.progress(wrap, sc);
     sc.classList.toggle('reveal', !!reveal);
     $('#resBar').innerHTML = `<button class="btn soft${isSaved(comp.key) ? ' on' : ''}" id="rSave">${isSaved(comp.key) ? 'Gardé' : 'Garder'}</button><button class="btn primary" id="rDest">Découvrir ma destination</button>`;
-    lazyArt(sc); if (bottle3d) VS.Bottle3D.mount(sc);
+    lazyArt(sc); mountBottle(sc);
     void wrap.offsetWidth; wrap.classList.add('show');
     if (!resultOpen) { try { history.pushState({ r: 1 }, ''); } catch (e) { /* ignore */ } resultOpen = true; }
     // révélation au scroll
@@ -908,7 +922,7 @@
     const al = VS.ALLERGENS.map(g => `<button class="al${prefs.allergies.includes(g.id) ? ' on' : ''}" data-al="${g.id}"><b>${g.n}</b><small>${g.hint}</small><em>${groupCount(g)} senteurs</em></button>`).join('');
     const fams = Object.keys(FAM).map(f => `<button class="chip${prefs.fams.includes(f) ? ' on' : ''}" data-pf="${f}"><span class="dot" style="--fc:${FAM[f].c}"></span>${FAM[f].n} <em>${VS.NOTE_LIST.filter(n => n.f === f).length}</em></button>`).join('');
     return `<div class="pf-top"><button class="round" id="pfBack" aria-label="Retour">←</button><b>Mes préférences</b></div><div class="pf-in">` +
-      `<section class="pf-sec" style="margin-top:0"><h4 style="margin-top:4px">Format</h4><div class="fmt-slot"></div></section><section class="pf-sec"><h4 style="margin-top:4px">Flacon</h4><div class="seg" id="botSeg">${[[false, 'Plat'], [true, '3D']].map(v => `<button data-b="${v[0]}" class="${bottle3d === v[0] ? 'on' : ''}">${v[1]}</button>`).join('')}</div><p class="pf-hint">En 3D, le flacon tourne du doigt et se balance doucement.</p></section><section class="pf-sec"><h4 style="margin-top:4px">Affichage</h4><div class="seg" id="viewSeg">${[['auto', 'Automatique'], ['mobile', 'Téléphone'], ['desktop', 'Ordinateur']].map(v => `<button data-v="${v[0]}" class="${store.get('vs.view', 'auto') === v[0] ? 'on' : ''}">${v[1]}</button>`).join('')}</div><p class="sub" style="margin:8px 2px 0">Automatique adapte la mise en page à ta fenêtre.</p></section>` +
+      `<section class="pf-sec" style="margin-top:0"><h4 style="margin-top:4px">Format</h4><div class="fmt-slot"></div></section><section class="pf-sec"><h4 style="margin-top:4px">Flacon</h4><div class="seg" id="botSeg">${[['flat', 'Plat'], ['css', '3D'], ['gl', '3D liquide']].map(v => `<button data-b="${v[0]}" class="${bottleKind === v[0] ? 'on' : ''}"${v[0] === 'gl' && !VS.BottleGL.ok() ? ' disabled' : ''}>${v[1]}</button>`).join('')}</div><p class="pf-hint">${VS.BottleGL.ok() ? '3D : il tourne du doigt. 3D liquide : verre, reflets et liquide qui ondule, penche et frémit.' : 'Le mode liquide demande WebGL, indisponible ici.'}</p></section><section class="pf-sec"><h4 style="margin-top:4px">Affichage</h4><div class="seg" id="viewSeg">${[['auto', 'Automatique'], ['mobile', 'Téléphone'], ['desktop', 'Ordinateur']].map(v => `<button data-v="${v[0]}" class="${store.get('vs.view', 'auto') === v[0] ? 'on' : ''}">${v[1]}</button>`).join('')}</div><p class="sub" style="margin:8px 2px 0">Automatique adapte la mise en page à ta fenêtre.</p></section>` +
       `<p class="pf-lead">Dis-nous ce que tu ne supportes pas : ces senteurs ne seront jamais utilisées dans tes parfums. Les lieux préfaits sont adaptés en remplaçant chaque note écartée par la plus proche.</p>` +
       `<div class="pf-sum" id="pfSum"></div>` +
       `<section class="pf-sec"><h2>Allergies & intolérances</h2><p class="sub">Touche un groupe : toutes les senteurs qui s'y rattachent sont écartées.</p><div class="al-grid">${al}</div></section>` +
@@ -935,7 +949,7 @@
       const al = e.target.closest('[data-al]'), pf = e.target.closest('[data-pf]'), pn = e.target.closest('[data-pn]'), pd = e.target.closest('[data-pd]');
       const vb = e.target.closest('[data-v]');
       const bb = e.target.closest('#botSeg button');
-      if (bb) { bottle3d = bb.dataset.b === 'true'; store.set('vs.b3d', bottle3d); $$('#botSeg button').forEach(x => x.classList.toggle('on', x === bb)); vibrate(8); toast(bottle3d ? 'Flacon en 3D' : 'Flacon plat'); return; }
+      if (bb) { bottleKind = bb.dataset.b; store.set('vs.b3d', bottleKind); $$('#botSeg button').forEach(x => x.classList.toggle('on', x === bb)); vibrate(8); toast({ flat: 'Flacon plat', css: 'Flacon en 3D', gl: 'Flacon liquide en 3D' }[bottleKind]); return; }
       if (vb) { window.setView(vb.dataset.v); $$('#viewSeg button').forEach(x => x.classList.toggle('on', x === vb)); vibrate(8); return; }
       if (al) { togglePref(prefs.allergies, al.dataset.al); al.classList.toggle('on', prefs.allergies.includes(al.dataset.al)); }
       else if (pf) { togglePref(prefs.fams, pf.dataset.pf); pf.classList.toggle('on', prefs.fams.includes(pf.dataset.pf)); }
