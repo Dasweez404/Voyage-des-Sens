@@ -31,7 +31,7 @@ Sur téléphone : « Ajouter à l'écran d'accueil » pour l'installer (le servi
   fête foraine, cirque, ferme…), Voyage (marché oriental, volcan, jungle, pizzeria new-yorkaise…) et Souvenirs.
 - **549 senteurs** réparties en 18 familles (hespéridés, floraux, boisés, gourmands, marins, minéraux, boissons & sirops, confiseries…) : cola, grenadine, chips paprika, pop-corn, barbe à papa, violette, caramel, cuir….
 - **Sous-catégories** pour filtrer les lieux : 4 ou 5 par catégorie (Cocon & chaleur, Mers & îles, Goûters & douceurs…).
-- **Quiz olfactif** (onglet sous Créer) : 8 questions (moment, lieu, saison, envies, histoire, gourmandise, matières, présence). Il aboutit à **une destination** choisie parmi les 111 (classement selon le type de lieu, la saison, l'ambiance, l'histoire et les matières), avec son itinéraire olfactif, les notes qui correspondent au profil, « Autre destination » (4 meilleures) et le parfum préfait qui l'accompagne (« Le sentir »).
+- **Quiz olfactif** (onglet sous Créer) : 9 questions (moment, lieu, une précision qui s'adapte au lieu — rivage, forêt, altitude, ville…, saison, envies, histoire, gourmandise, matières, présence). Il aboutit à **une destination** choisie parmi les 111 (classement selon le type de lieu, la saison, l'ambiance, l'histoire et les matières), avec son itinéraire olfactif, les notes qui correspondent au profil, « Un cran sous… » qui explique l'écart avec la première, « Autre destination » (4 meilleures), cœur pour garder la destination (section « Destinations gardées » de la Collection), bouton de partage (image PNG) et le parfum de la destination (lieu préfait rattaché, sinon une formule composée pour elle, toujours la même) via « Le sentir ». Les allergies et senteurs écartées pénalisent le classement et sont barrées sur la fiche.
 - **Création sur mesure** : texte libre, directions (nostalgie, découverte, voyage, exotisme), 18 ambiances,
   senteurs au choix, richesse de la formule.
 - **111 destinations réelles** (Chamonix, Marrakech, Kyoto, Bora Bora, La Havane…) : chaque parfum reçoit la destination dont l'air lui ressemble le plus, avec un bouton « Découvrir ma destination » (affinité olfactive, itinéraire en trois moments, période, carte) et un bouton « Autre destination ».
@@ -68,3 +68,8 @@ node tools/audit.js scenes # relecture de toutes les formules
 
 Ajouter un lieu : une ligne dans `js/scenes.js` (`id|cat|nom|emoji|accroche|palette|illustration|notes`),
 puis `node tools/validate.js`.
+
+## Tests
+
+- `node tools/validate.js` : cohérence des données (notes, lieux, destinations, quiz).
+- `node tools/e2e.js` : parcours complet dans un navigateur (nécessite Playwright) — quiz mobile et ordinateur, favoris, partage, allergies, clavier, hors-ligne.

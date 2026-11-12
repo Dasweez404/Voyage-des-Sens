@@ -527,6 +527,21 @@ html.desktop #tabbar button{font-size:15px}
 html.desktop .scent-card{grid-template-columns:120px 1fr auto}
 html.desktop .scent-card>.btn{grid-column:auto}
 
+.dn span.ex{text-decoration:line-through;opacity:.5}
+.why-not{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);color:var(--ink2);font-size:14px;line-height:1.5}
+.fav-d{margin:0 0 20px}.fav-d[hidden]{display:none}
+.fav-t{font-family:var(--serif);font-size:22px;margin:0 2px 10px}
+.fav-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px}
+.fav-row .hcard{flex:0 0 132px}
+#destBar{display:flex;align-items:center;gap:8px}
+#destBar .btn{flex:1 1 0;min-width:0;white-space:nowrap}
+#destBar .btn.primary{flex:.8 1 0}
+#destBar .round{flex:0 0 46px;width:46px;height:46px;display:grid;place-items:center;color:var(--terra);background:var(--paper2);box-shadow:none;border-radius:50%;transition:transform .5s var(--spring),color .3s,background .3s}
+#destBar .round.on{background:var(--terra);color:var(--cream)}
+#destBar .round:active{transform:scale(.9)}
+.qo:focus-visible,.pill:focus-visible,.btn:focus-visible,.round:focus-visible,.hcard:focus-visible,.scent-card:focus-visible{outline:3px solid var(--terra2);outline-offset:3px}
+.qz-q:focus{outline:none}
+
 /* ---------- destination ---------- */
 .top-actions{display:flex;gap:8px}
 .pill{pointer-events:auto;height:44px;padding:0 16px;border-radius:999px;background:var(--paper);color:var(--ink);font-weight:700;font-size:13.5px;box-shadow:0 4px 0 var(--paper2);transition:transform .25s var(--spring)}
@@ -726,7 +741,7 @@ html.desktop .scent-card>.btn{grid-column:auto}
   html.desktop .res-right{padding:84px 64px 170px 44px;max-width:860px}
   html.desktop .res-right>.sec:first-child{margin-top:0}
   html.desktop .res-bar{left:calc(max(400px,44%) + 44px);right:auto;width:min(560px,calc(56% - 108px));bottom:28px}
-  html.desktop .res-bar.two{width:min(480px,calc(56% - 108px))}
+  html.desktop .res-bar.two{width:min(560px,calc(56% - 108px))}
 
   /* préférences */
   html.desktop .pf-top{padding-left:max(24px,calc((100% - 960px) / 2))}

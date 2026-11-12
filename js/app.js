@@ -1,7 +1,7 @@
 /* Voyage des Sens — interface */
 (function () {
   'use strict';
-  const BUILD = '2611121045';
+  const BUILD = '2611121056';
   // page et scripts de versions différentes (cache) : on repart d'un état propre, une seule fois
   (function guard() {
     const meta = document.querySelector('meta[name="vs-build"]');
@@ -370,10 +370,18 @@
   });
 
   /* ---------- collection ---------- */
+  function renderFavD() {
+    const box = $('#favDest'), list = favD.map(id => VS.DESTS.find(d => d.id === id)).filter(Boolean);
+    box.hidden = !list.length;
+    box.innerHTML = list.length ? `<h3 class="fav-t">Destinations gardées</h3><div class="rel fav-row">${list.map(d => `<button class="hcard" data-fd="${d.id}"><div class="pic"><div class="art-w" data-art="${d.art}"></div></div><b>${d.n}</b><small>${d.c}</small></button>`).join('')}</div>` : '';
+    lazyArt(box);
+    $$('[data-fd]', box).forEach(b => b.addEventListener('click', () => { const i = list.findIndex(d => d.id === b.dataset.fd); openDest({ fav: true, ids: [], families: [], accord: '', text: '' }, list.map(d => ({ d, hits: [], aff: null })), i); }));
+  }
   function renderColl() {
     const grid = $('#collGrid');
-    $('#collBadge').hidden = !coll.length; $('#collBadge').textContent = coll.length;
-    if (!coll.length) { grid.innerHTML = `<div class="empty"><span class="shape"></span>Ta collection est vide.<br>Compose un parfum et touche <b>Garder</b> pour le retrouver ici.</div>`; return; }
+    $('#collBadge').hidden = !(coll.length + favD.length); $('#collBadge').textContent = coll.length + favD.length;
+    renderFavD();
+    if (!coll.length) { grid.innerHTML = `<div class="empty"><span class="shape"></span>${favD.length ? 'Pas encore de parfum gardé.' : 'Ta collection est vide.<br>Compose un parfum et touche <b>Garder</b> pour le retrouver ici.'}</div>`; return; }
     grid.innerHTML = coll.map((c, i) => {
       const comp = rebuild(c);
       return `<button class="ccard" data-k="${c.key}" style="animation-delay:${i * 60}ms"><div class="th">${Art.scene(comp.spec, { static: true })}<span class="bt">${Art.bottle({ cols: [comp.layerColor.T, comp.layerColor.C, comp.layerColor.F], shares: shares(comp) })}</span></div><div><b>${comp.name}</b><div class="ac">${comp.accord}</div>${comp.conflicts && comp.conflicts.length ? '<div class="warnb">Contient une senteur que tu évites</div>' : ''}<div class="nn">${comp.notes.slice(0, 5).map(n => n.e + ' ' + n.n).join(' · ')}</div></div><span class="del" data-del="${c.key}" aria-label="Supprimer">✕</span></button>`;
@@ -608,29 +616,79 @@
     const hitNames = x.hits.map(id => NOTES[id].n.toLowerCase());
     const famNames = d.fams.filter(f => comp.families.some(c => c.f === f)).map(f => FAM[f].n.toLowerCase());
     const amb = lst(d.tags.slice(0, 3).map(tagLabel));
-    const quiz = !!comp.quiz;
+    const quiz = !!(comp.quiz || comp.fav), favm = !!comp.fav, exn = d.notes.some(id => VS.EXCL.has(id));
+    const wn = comp.quiz && idx > 0 && x.parts ? '<p class="why-not">' + VS.Quiz.whyNot(list[0], x, comp.ans) + '</p>' : '';
     const why = quiz
-      ? `Tu cherchais ${comp.text}. ${hitNames.length ? 'Tu y retrouveras ' + lst(hitNames) + ', des senteurs qui te correspondent.' : 'Son ambiance ' + amb + ' est celle de tes réponses.'}`
+      ? favm ? `Une destination que tu as gardée : son ambiance ${amb} t'avait plu.` : `Tu cherchais ${comp.text}. ${hitNames.length ? 'Tu y retrouveras ' + lst(hitNames) + ', des senteurs qui te correspondent.' : 'Son ambiance ' + amb + ' est celle de tes réponses.'}`
       : hitNames.length
       ? `Ta formule contient ${lst(hitNames)} : des senteurs qu'on respire partout à ${d.n}. Son accord ${comp.accord.toLowerCase()} rejoint l'ambiance ${amb} du lieu.`
       : famNames.length
         ? `Ton accord ${comp.accord.toLowerCase()} retrouve à ${d.n} les notes ${lst(famNames)} qui dominent l'air du lieu, dans une ambiance ${amb}.`
         : `L'ambiance ${amb} de ${d.n} est celle que ton parfum dessine.`;
-    const chips = d.notes.map(id => `<span class="${(quiz ? x.hits : comp.ids).includes(id) ? 'on' : ''}">${NOTES[id].e} ${NOTES[id].n}</span>`).join('');
+    const chips = d.notes.map(id => `<span class="${(quiz ? x.hits : comp.ids).includes(id) ? 'on' : ''}${VS.EXCL.has(id) ? ' ex' : ''}"${VS.EXCL.has(id) ? ' title="Écartée par tes préférences"' : ''}>${NOTES[id].e} ${NOTES[id].n}</span>`).join('');
     const others = list.map((o, i) => [o, i]).filter(([, i]) => i !== idx).slice(0, 4);
     return `<div class="res-left"><div class="res-hero"><div class="art-bg" id="destArt">${Art.scene(spec)}</div><div class="res-top"><button class="round" id="dBack" aria-label="Retour">←</button><span></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
-      `<div class="res-title" style="padding-top:8px"><div class="badge">Ta destination · ${d.c}</div><h1>${d.n}</h1><p class="tg">${d.tag}</p><span class="accord">${x.aff} % d'affinité ${quiz ? 'avec tes réponses' : 'olfactive'}</span></div>` +
-      `</div><div class="res-right"><section class="sec rv"><h2>Pourquoi ici</h2><div class="story"><p>${d.txt} ${why}</p></div></section>` +
-      `<section class="sec rv"><h2>Ce que tu y respireras</h2><p class="sub">${quiz ? 'Les notes en couleur correspondent à ton profil.' : 'Les notes en couleur sont déjà dans ta formule.'}</p><div class="dn">${chips}</div></section>` +
+      `<div class="res-title" style="padding-top:8px"><div class="badge">${favm ? 'Gardée' : 'Ta destination'} · ${d.c}</div><h1>${d.n}</h1><p class="tg">${d.tag}</p>${x.aff == null ? '' : '<span class="accord">' + x.aff + ' % d\'affinité ' + (comp.quiz ? 'avec tes réponses' : 'olfactive') + '</span>'}</div>` +
+      `</div><div class="res-right"><section class="sec rv"><h2>Pourquoi ici</h2><div class="story"><p>${d.txt} ${why}</p>${wn}</div></section>` +
+      `<section class="sec rv"><h2>Ce que tu y respireras</h2><p class="sub">${favm ? 'Les senteurs de l\'air du lieu.' : quiz ? 'Les notes en couleur correspondent à ton profil.' : 'Les notes en couleur sont déjà dans ta formule.'}${exn ? ' Les notes barrées sont écartées par tes préférences.' : ''}</p><div class="dn">${chips}</div></section>` +
       `<section class="sec rv"><h2>Bon à savoir</h2><div class="sig2" style="margin-top:0"><div class="box"><h4>Quand partir</h4><div class="moment" style="font-size:19px">${d.when}</div></div><div class="box"><h4>Durée idéale</h4><div class="moment" style="font-size:19px">${d.dur}</div></div></div><div class="box" style="margin-top:12px"><h4>Ambiance</h4><div class="tags" style="margin-top:0">${d.tags.map(t => `<span>${tagLabel(t)}</span>`).join('')}</div></div></section>` +
       `<section class="sec"><h2 class="rv">Ton itinéraire olfactif</h2><p class="sub rv">Trois moments à respirer.</p><div class="stops rv">${d.stops.map((s, i) => `<div class="stop" style="--d:${(.2 + i * .25).toFixed(2)}s"><b>${s.t}</b><span>${s.o}</span></div>`).join('')}</div></section>` +
       (quiz ? scentCard(d) : '') +
-      `<section class="sec rv"><h2>Autres idées de voyage</h2><div class="rel">${others.map(([o, i]) => `<button class="hcard" data-di="${i}"><div class="pic"><div class="art-w" data-art="${o.d.art}"></div></div><b>${o.d.n}</b><small>${o.d.c} · ${o.aff} %</small></button>`).join('')}</div></section></div>`;
+      `<section class="sec rv"${others.length ? '' : ' hidden'}><h2>Autres idées de voyage</h2><div class="rel">${others.map(([o, i]) => `<button class="hcard" data-di="${i}"><div class="pic"><div class="art-w" data-art="${o.d.art}"></div></div><b>${o.d.n}</b><small>${o.d.c}${o.aff == null ? '' : ' · ' + o.aff + ' %'}</small></button>`).join('')}</div></section></div>`;
   }
-  // le parfum de la destination (lieu préfait rattaché ou le plus proche)
+  // le parfum de la destination : le lieu préfait qui lui est rattaché, sinon une formule composée pour elle (stable)
+  const hashStr = t => { let h = 7; for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 2654435761) >>> 0; return h; };
+  function composeDest(d) {
+    const per = {}, picks = d.notes.filter(id => { const l = NOTES[id].l; per[l] = (per[l] || 0) + 1; return per[l] <= 2; }).slice(0, 5);
+    const fams = {}; d.fams.forEach((f, i) => { fams[f] = [1.4, 1, .6][i] || .5; });
+    const tags = {}; d.tags.forEach((t, i) => { tags[t] = 1.2 - i * .2; });
+    const sc = SCENE[d.art], art = E.compose({ picks, fams, tags, size: [3, 3, 3], seed: hashStr(d.id), tag: d.tag, extra: [d.c], spec: { id: 'dp' + d.id, pal: sc.pal, art: sc.art, n: d.n },
+      nameFn: () => (/^(le |la |les |l')/i.test(d.n) ? ({ le: 'Air du ', la: 'Air de la ', les: 'Air des ' }[d.n.split(/[ ']/)[0].toLowerCase()] || 'Air de l\'') + d.n.replace(/^(le |la |les |l')/i, '') : (/^[AEIOUYÉÈH]/i.test(d.n) ? 'Air d\'' : 'Air de ') + d.n) });
+    art.emoji = '🧳'; return art;
+  }
+  function scentInfo(d) {
+    const sc = VS.SCENES.find(x => VS.SCENE_DEST[x.id] === d.id);
+    if (sc) return { attr: `data-scene="${sc.id}"`, name: sc.n, tag: sc.tag, notes: E.adaptIds(sc.notes).ids.slice(0, 6), art: sc.id, em: sc.e };
+    const c = composeDest(d), top = c.notes.slice().sort((a, b) => b.pct - a.pct).slice(0, 6).map(n => n.id);
+    return { attr: `data-dperf="${d.id}"`, name: c.name, tag: d.tag, notes: top, art: d.art, em: '🧳' };
+  }
   function scentCard(d) {
-    const sc = VS.Quiz.sceneFor(d); if (!sc) return '';
-    return `<section class="sec rv"><h2>Le parfum de ta destination</h2><button class="scent-card" data-scene="${sc.id}"><div class="pic"><div class="art-w" data-art="${sc.id}"></div><span class="em">${sc.e}</span></div><div class="sc-t"><b>${sc.n}</b><span>${sc.tag}</span><em>${sc.notes.slice(0, 6).map(id => NOTES[id].e).join(' ')}</em></div><span class="btn primary">Le sentir</span></button></section>`;
+    const i = scentInfo(d);
+    return `<section class="sec rv"><h2>Le parfum de ta destination</h2><button class="scent-card" ${i.attr}><div class="pic"><div class="art-w" data-art="${i.art}"></div><span class="em">${i.em}</span></div><div class="sc-t"><b>${i.name}</b><span>${i.tag}</span><em>${i.notes.map(id => NOTES[id].e).join(' ')}</em></div><span class="btn primary">Le sentir</span></button></section>`;
+  }
+  const favD = store.get('vs.favd', []);
+  const isFavD = id => favD.includes(id);
+  function toggleFavD(id) {
+    const i = favD.indexOf(id);
+    if (i >= 0) { favD.splice(i, 1); toast('Retirée de tes destinations'); } else { favD.unshift(id); toast('Destination gardée dans ta collection'); }
+    store.set('vs.favd', favD); renderColl();
+  }
+  // image à partager : la destination, son affinité, ses notes
+  async function shareDest(d, aff, text) {
+    const W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d'), sc = SCENE[d.art];
+    const svg = Art.scene({ id: 'sh' + d.id, pal: sc.pal, art: sc.art, n: d.n }, { static: true }).replace('<svg ', '<svg width="1080" height="760" ');
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const img = await new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = url; }).catch(() => null);
+    g.fillStyle = '#fdf5ee'; g.fillRect(0, 0, W, H);
+    if (img) g.drawImage(img, 0, 0, W, 760);
+    URL.revokeObjectURL(url);
+    const serif = '"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif', ink = '#6a331f';
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    const wrap = (t, x, y, w, lh) => { let line = ''; t.split(' ').forEach(wd => { const tt = line ? line + ' ' + wd : wd; if (g.measureText(tt).width > w && line) { g.fillText(line, x, y); y += lh; line = wd; } else line = tt; }); g.fillText(line, x, y); return y; };
+    g.fillStyle = '#b9653d'; g.font = '700 26px system-ui,sans-serif'; g.fillText((aff == null ? 'DESTINATION' : 'MA DESTINATION') + ' · ' + d.c.toUpperCase(), W / 2, 830);
+    g.fillStyle = ink; let fs = 104; do { g.font = '700 ' + fs + 'px ' + serif; fs -= 4; } while (g.measureText(d.n).width > 940 && fs > 48); g.fillText(d.n, W / 2, 940);
+    g.fillStyle = '#8c5238'; g.font = 'italic 36px ' + serif; let y = wrap(d.tag, W / 2, 1010, 880, 48);
+    if (aff != null) { const t = aff + ' % d\'affinité'; g.font = '700 30px system-ui,sans-serif'; const w = g.measureText(t).width + 60; g.fillStyle = '#e6b67f'; g.beginPath(); g.roundRect(W / 2 - w / 2, y + 28, w, 60, 30); g.fill(); g.fillStyle = ink; g.fillText(t, W / 2, y + 68); y += 88; }
+    g.font = '500 34px system-ui,sans-serif'; g.fillStyle = ink;
+    const chips = d.notes.slice(0, 4).map(id => NOTES[id].e + ' ' + NOTES[id].n); g.fillText(chips.slice(0, 2).join('    '), W / 2, y + 70); g.fillText(chips.slice(2).join('    '), W / 2, y + 122);
+    g.fillStyle = '#a47b67'; g.font = '600 26px system-ui,sans-serif'; g.fillText('Voyage des Sens' + (text ? ' · ' + text : ''), W / 2, H - 46);
+    const blob = await new Promise(ok => cv.toBlob(ok, 'image/png'));
+    if (!blob) { toast('Image impossible à créer'); return; }
+    const file = new File([blob], 'voyage-' + d.id + '.png', { type: 'image/png' });
+    try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: d.n, text: d.tag }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('Image enregistrée');
   }
   function swapDest(sc) { vibrate(10); sc.classList.add('swap'); setTimeout(() => { renderDest(true); sc.classList.remove('swap'); }, 380); }
   function renderDest(reveal) {
@@ -638,19 +696,23 @@
     sc.innerHTML = destHTML(destComp, destList, destIdx); sc.scrollTop = 0;
     $$('.sec>h2', sc).forEach(Motion.splitWords); Motion.progress($('#dest'), sc);
     sc.classList.toggle('reveal', !!reveal);
-    $('#destBar').innerHTML = `<button class="btn soft" id="dNext">Autre destination</button><a class="btn primary" id="dMap" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${d.lat}&mlon=${d.lon}#map=8/${d.lat}/${d.lon}">Voir sur la carte</a>`;
+    const many = destList.length > 1, fv = isFavD(d.id);
+    $('#destBar').innerHTML = `<button class="round fav${fv ? ' on' : ''}" id="dFav" aria-pressed="${fv}" aria-label="Garder cette destination"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z" fill="currentColor"/></svg></button><button class="round" id="dShare" aria-label="Partager"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>${many ? '<button class="btn soft" id="dNext">Autre destination</button>' : ''}<a class="btn primary" id="dMap" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${d.lat}&mlon=${d.lon}#map=8/${d.lat}/${d.lon}">Carte</a>`;
     lazyArt(sc);
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { root: sc, threshold: .12 });
     $$('.rv', sc).forEach(el => io.observe(el));
     const art = $('#destArt'); let tick = false;
     sc.onscroll = () => { if (tick) return; tick = true; requestAnimationFrame(() => { const y = sc.scrollTop; if (y < 700 && !document.documentElement.classList.contains('desktop')) art.style.transform = `translateY(${y * .38}px) scale(${1 + y / 2200})`; tick = false; }); };
     $('#dBack').onclick = () => closeDest();
-    $('#dNext').onclick = () => { destIdx = (destIdx + 1) % Math.min(4, destList.length); swapDest(sc); };
+    const nx = $('#dNext'); if (nx) nx.onclick = () => { destIdx = (destIdx + 1) % (destComp && destComp.fav ? destList.length : Math.min(4, destList.length)); swapDest(sc); };
+    $('#dFav').onclick = e => { const b = e.currentTarget, on = !isFavD(d.id); toggleFavD(d.id); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); vibrate(on ? [8, 20, 8] : 8); };
+    $('#dShare').onclick = () => { vibrate(8); shareDest(d, destList[destIdx].aff, destComp && destComp.text); };
     $$('[data-di]', sc).forEach(b => b.addEventListener('click', () => { destIdx = +b.dataset.di; swapDest(sc); }));
     $$('[data-scene]', sc).forEach(b => b.addEventListener('click', () => { const id = b.dataset.scene; closeDest(); setTimeout(() => openScene(id), 420); }));
+    $$('[data-dperf]', sc).forEach(b => b.addEventListener('click', () => { const dd = VS.DESTS.find(z => z.id === b.dataset.dperf); closeDest(); setTimeout(() => run(composeDest(dd)), 420); }));
   }
-  function openDest(comp, list) {
-    destComp = comp; destList = list || E.destinations(comp); destIdx = 0;
+  function openDest(comp, list, idx) {
+    destComp = comp; destList = list || E.destinations(comp); destIdx = idx || 0;
     const w = $('#dest'); w.hidden = false; w.setAttribute('aria-hidden', 'false');
     renderDest(true); void w.offsetWidth; w.classList.add('show'); vibrate([10, 30, 10]);
     if (!destOpen) { try { history.pushState({ d: 1 }, ''); } catch (e) { /* ignore */ } destOpen = true; }
@@ -662,7 +724,7 @@
     if (!fromPop && history.state && history.state.d) { try { skipPop++; history.back(); } catch (e) { /* ignore */ } }
   }
 
-  /* ---------- quiz : 8 questions, un parfum sur mesure ---------- */
+  /* ---------- quiz : 9 questions, une destination ---------- */
   const QZ = { i: -1, ans: {}, busy: false, back: false };
   const QCOL = ['#e6b67f', '#adb78f', '#efcbbb', '#d9a18d', '#d3a2b5', '#9fc4cf', '#e0c46f', '#b9a1d6'];
   // le quiz aboutit à une destination : classement des 111 destinations d'après les réponses
@@ -677,26 +739,27 @@
   }
   function quizIntro() {
     const last = store.get('vs.quiz', null);
-    return `<div class="qz-body${QZ.back ? ' back' : ''}"><header class="page-h"><h2>Le quiz olfactif</h2><p>Huit questions, une minute : on te trouve la destination qui te ressemble, avec son itinéraire olfactif et le parfum qui l\'accompagne.</p></header>` +
+    return `<div class="qz-body${QZ.back ? ' back' : ''}"><header class="page-h"><h2>Le quiz olfactif</h2><p>Neuf questions, une minute : on te trouve la destination qui te ressemble, avec son itinéraire olfactif et le parfum qui l\'accompagne.</p></header>` +
       `<div class="qz-intro"><div class="qz-orb" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` +
-      `<ul class="qz-points"><li><b>8</b> questions courtes</li><li><b>1</b> minute</li><li><b>111</b> destinations</li></ul>` +
+      `<ul class="qz-points"><li><b>9</b> questions courtes</li><li><b>1</b> minute</li><li><b>111</b> destinations</li></ul>` +
       `<button class="btn primary big" data-q="start">Commencer le quiz</button></div>` +
       (last ? `<div class="qz-last"><div><small>Ton dernier profil</small><b>${VS.Quiz.summary(last) || 'Profil enregistré'}</b></div><div class="qz-last-b"><button class="btn soft" data-q="again">Revoir ma destination</button><button class="btn soft" data-q="start">Refaire</button></div></div>` : '') + `</div>`;
   }
   function quizQuestion() {
-    const q = VS.QUIZ[QZ.i], n = VS.QUIZ.length, sel = [].concat(QZ.ans[q.id] || []);
-    const opts = q.opts.map((o, k) => `<button class="qo${sel.includes(o.id) ? ' on' : ''}" data-o="${o.id}" style="--oc:${QCOL[k % QCOL.length]};--k:${k}"><b>${o.label}</b><small>${o.sub || ''}</small></button>`).join('');
+    const QS = VS.Quiz.questions(QZ.ans), q = QS[QZ.i], n = QS.length, sel = [].concat(QZ.ans[q.id] || []), multi = q.type === 'multi';
+    const opts = q.opts.map((o, k) => `<button class="qo${sel.includes(o.id) ? ' on' : ''}" data-o="${o.id}" ${multi ? `aria-pressed="${sel.includes(o.id)}"` : ''} style="--oc:${QCOL[k % QCOL.length]};--k:${k}"><b>${o.label}</b><small>${o.sub || ''}</small></button>`).join('');
     return `<div class="qz-body${QZ.back ? ' back' : ''}" data-q-id="${q.id}">` +
       `<div class="qz-top"><button class="pill" data-q="prev">← ${QZ.i ? 'Précédent' : 'Accueil du quiz'}</button><span class="qz-count">Question ${QZ.i + 1} / ${n}</span></div>` +
-      `<div class="qz-bar"><i style="width:${QZ.i / n * 100}%" data-to="${(QZ.i + 1) / n * 100}"></i></div>` +
-      `<h2 class="qz-q">${q.q}</h2><p class="qz-sub">${q.sub}${q.type === 'multi' ? '' : ''}</p>` +
-      `<div class="qz-opts${q.opts.length === 3 ? ' three' : ''}">${opts}</div>` +
-      (q.type === 'multi' ? `<div class="qz-foot"><span class="qz-hint">${sel.length} / ${q.max}</span><button class="btn primary" data-q="next"${sel.length ? '' : ' disabled'}>${QZ.i === n - 1 ? 'Composer mon parfum' : 'Continuer'}</button></div>` : '') + `</div>`;
+      `<div class="qz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${QZ.i + 1}"><i style="width:${QZ.i / n * 100}%" data-to="${(QZ.i + 1) / n * 100}"></i></div>` +
+      `<h2 class="qz-q" id="qzQ" tabindex="-1">${q.q}</h2><p class="qz-sub">${q.sub}</p>` +
+      `<div class="qz-opts${q.opts.length === 3 ? ' three' : ''}" role="group" aria-labelledby="qzQ">${opts}</div>` +
+      (multi ? `<div class="qz-foot"><span class="qz-hint" aria-live="polite">${sel.length} / ${q.max}</span><button class="btn primary" data-q="next"${sel.length ? '' : ' disabled'}>Continuer</button></div>` : '') + `</div>`;
   }
   function renderQuiz() {
     const box = $('#quizBox'); box.innerHTML = QZ.i < 0 ? quizIntro() : quizQuestion();
     const bar = $('.qz-bar i', box); if (bar) requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = bar.dataset.to + '%'; }));
     QZ.back = false; QZ.busy = false;
+    const h = $('#qzQ', box); if (h) { try { h.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }
   }
   function quizSwap(back) {
     const b = $('#quizBox .qz-body'); QZ.back = !!back; QZ.busy = true;
@@ -704,7 +767,7 @@
     b.classList.add('out'); setTimeout(renderQuiz, reduce ? 0 : 430);
   }
   function quizNext() {
-    if (QZ.i >= VS.QUIZ.length - 1) {
+    if (QZ.i >= VS.Quiz.questions(QZ.ans).length - 1) {
       const ans = QZ.ans; store.set('vs.quiz', ans); vibrate([10, 30, 10]);
       quizWait(ans);
     } else { QZ.i++; quizSwap(false); }
@@ -717,18 +780,25 @@
     if (t.dataset.q === 'prev') { vibrate(6); QZ.i--; quizSwap(true); return; }
     if (t.dataset.q === 'next') { vibrate(10); quizNext(); return; }
     const o = t.dataset.o; if (!o) return;
-    const q = VS.QUIZ[QZ.i]; vibrate(8);
+    const q = VS.Quiz.questions(QZ.ans)[QZ.i]; vibrate(8);
     if (q.type === 'multi') {
       const cur = [].concat(QZ.ans[q.id] || []), i = cur.indexOf(o);
       if (i >= 0) cur.splice(i, 1); else if (cur.length >= q.max) { toast(`${q.max} choix maximum`); return; } else cur.push(o);
       QZ.ans[q.id] = cur;
-      $$('#quizBox .qo').forEach(b => b.classList.toggle('on', cur.includes(b.dataset.o)));
+      $$('#quizBox .qo').forEach(b => { b.classList.toggle('on', cur.includes(b.dataset.o)); b.setAttribute('aria-pressed', cur.includes(b.dataset.o)); });
       $('.qz-hint').textContent = cur.length + ' / ' + q.max; $('[data-q="next"]').disabled = !cur.length;
     } else {
-      QZ.ans[q.id] = o; QZ.busy = true;
+      QZ.ans[q.id] = o; QZ.busy = true; if (q.id === 'place') delete QZ.ans.detail;
       $$('#quizBox .qo').forEach(b => b.classList.toggle('on', b === t));
       setTimeout(quizNext, reduce ? 0 : 620);                         // laisse le temps de voir son choix
     }
+  });
+
+  $('#quizBox').addEventListener('keydown', e => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const bs = $$('#quizBox .qo'); if (!bs.length) return;
+    const i = bs.indexOf(document.activeElement), d = (e.key === 'ArrowDown' || e.key === 'ArrowRight') ? 1 : -1;
+    e.preventDefault(); bs[i < 0 ? 0 : (i + d + bs.length) % bs.length].focus();
   });
 
   /* ---------- fiche d'une note ---------- */

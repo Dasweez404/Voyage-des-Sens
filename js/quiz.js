@@ -66,6 +66,51 @@
     ] }
   ];
 
+  // question adaptative : une précision qui dépend du décor choisi (elle oriente le classement des destinations)
+  const W = x => x.split(' ');
+  const DETAIL = {
+    mer: { q: 'Quel rivage ?', sub: 'Toujours l\'eau, mais pas la même.', opts: [
+      { id: 'tropical', label: 'Lagon et cocotiers', sub: 'Eau turquoise, monoï, fruits mûrs', ids: W('zanzibar nosybe reunion bali maldives rio hawaii borabora seychelles maurice goa jamaique martinique mekong havane cartagena') },
+      { id: 'med', label: 'Méditerranée et ports', sub: 'Pierre chaude, olivier, embruns', ids: W('marseille amalfi naples venise sicile santorin lisbonne crete algarve madere barcelone tanger corse calanques') },
+      { id: 'sauvage', label: 'Côtes sauvages', sub: 'Falaises, vent, algues', ids: W('cancale lofoten milford bergen corse calanques') }
+    ] },
+    foret: { q: 'Quelle forêt ?', sub: 'Les arbres ne sentent pas partout pareil.', opts: [
+      { id: 'tempere', label: 'Grands arbres tranquilles', sub: 'Sapins, mousse, sentiers', ids: W('foretnoire sequoias fontainebleau banff quebec') },
+      { id: 'jungle', label: 'Jungle et humidité', sub: 'Fleurs géantes, pluie chaude', ids: W('amazonie monteverde yucatan yakushima') }
+    ] },
+    montagne: { q: 'Quelle altitude ?', sub: 'Du chalet douillet aux sommets sauvages.', opts: [
+      { id: 'neige', label: 'Neige et chalets', sub: 'Feu de bois, vin chaud', ids: W('chamonix rovaniemi zermatt saintmoritz dolomites annecy') },
+      { id: 'sauvage', label: 'Sommets sauvages', sub: 'Vent, pierre, grands horizons', ids: W('islande highlands patagonie kilimandjaro') },
+      { id: 'sacree', label: 'Montagnes sacrées', sub: 'Encens, thé, silence', ids: W('himalaya fuji srilanka cusco') }
+    ] },
+    jardin: { q: 'Quel jardin ?', sub: 'Des pétales aux vignes, tout fleurit.', opts: [
+      { id: 'fleurs', label: 'Un champ de fleurs', sub: 'Lavande, roses, tulipes', ids: W('valensole grasse keukenhof giverny cotswolds valleeroses capbon') },
+      { id: 'campagne', label: 'Campagne et vignes', sub: 'Foin, raisin, olivier', ids: W('paysdauge gers toscane napa florence seville') },
+      { id: 'lointain', label: 'Jardins lointains', sub: 'Thé, orchidées, épices', ids: W('kyoto chiangmai kerala singapour capbon') }
+    ] },
+    ville: { q: 'Quelle ville ?', sub: 'Chaque ville a son odeur.', opts: [
+      { id: 'cosy', label: 'Vieilles pierres et cafés', sub: 'Pâtisseries, librairies, pluie fine', ids: W('montmartre strasbourg bruges oxford edimbourg londres prague salzbourg vienne budapest lyon montreal irlande rome') },
+      { id: 'metropole', label: 'Métropole électrique', sub: 'Néons, street food, métro', ids: W('tokyo newyork seoul hongkong sanfrancisco nola buenosaires tivoli') },
+      { id: 'souk', label: 'Marchés d\'ailleurs', sub: 'Épices, thé à la menthe, encens', ids: W('marrakech hanoi jaipur istanbul lecaire oaxaca') }
+    ] },
+    desert: { q: 'Quel horizon ?', sub: 'Du sable ou de la savane.', opts: [
+      { id: 'dunes', label: 'Dunes et cités de pierre', sub: 'Encens, ambre, thé brûlant', ids: W('merzouga louxor petra salalah jaisalmer') },
+      { id: 'savane', label: 'Savane et grands espaces', sub: 'Terre rouge, feu de camp', ids: W('masai uluru route66 namibie') }
+    ] },
+    maison: { q: 'Quel cocon ?', sub: 'Chez toi, mais où exactement ?', opts: [
+      { id: 'chalet', label: 'Un chalet sous la neige', sub: 'Cheminée, laine, chocolat chaud', ids: W('chamonix rovaniemi zermatt saintmoritz foretnoire quebec montreal salzbourg') },
+      { id: 'campagne', label: 'Une maison de campagne', sub: 'Confiture, linge au soleil', ids: W('paysdauge gers cotswolds toscane valensole irlande') },
+      { id: 'cafe', label: 'Un café-librairie', sub: 'Papier, café, pluie contre la vitre', ids: W('oxford vienne edimbourg prague montmartre londres bruges strasbourg lyon') }
+    ] }
+  };
+  const detailOf = ans => { const D = DETAIL[ans && ans.place]; return D && D.opts.find(o => o.id === ans.detail); };
+  // 9 questions : la précision s'insère après le décor
+  function questions(ans) {
+    const out = QUIZ.slice(), D = DETAIL[ans && ans.place];
+    out.splice(2, 0, D ? { id: 'detail', q: D.q, sub: D.sub, type: 'one', opts: D.opts } : { id: 'detail', q: 'Une précision ?', sub: '', type: 'one', opts: [] });
+    return out;
+  }
+
   const TIME_WORD = { aube: 'Aube', midi: 'Midi', crepuscule: 'Crépuscule', nuit: 'Nuit' };
   const TIME_OF = { aube: 'd\'aube', midi: 'de plein midi', crepuscule: 'de crépuscule', nuit: 'de nuit' };
   const PLACE_OF = { mer: 'au bord de l\'eau', foret: 'sous les arbres', montagne: 'dans l\'air vif des hauteurs', jardin: 'dans un jardin fleuri', ville: 'au cœur d\'une ville vivante', desert: 'entre souk et désert', maison: 'bien au chaud chez toi' };
@@ -132,35 +177,54 @@
   }
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  // classe toutes les destinations pour un profil de réponses : retourne [{ d, hits, aff }]
+  // classe toutes les destinations pour un profil de réponses : retourne [{ d, hits, aff, parts }]
   function rank(ans, seed) {
     const p = params(ans), o = p.opts;
     const tags = o.tags, fams = o.fams, avoid = new Set(o.avoid), dir = (o.dirs || [])[0];
-    const place = ans.place, season = ans.season;
+    const place = ans.place, season = ans.season, det = detailOf(ans), EX = VS.EXCL || new Set();
     const tmax = Math.max(1, ...Object.keys(tags).map(k => tags[k]));
     let a = (seed == null ? Math.floor(Math.random() * 1e9) : seed) >>> 0;
     const rnd = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
     const list = VS.DESTS.map(d => {
-      let sc = 0;
+      const parts = { pl: 0, se: 0, am: 0, de: 0, fa: 0, ex: 0 };
       const pl = VS.DEST_PLACE[d.id] || [];
-      if (pl[0] === place) sc += 6; else if (pl.indexOf(place) >= 0) sc += 3.6;                 // 1. le lieu
+      if (pl[0] === place) parts.pl = 6; else if (pl.indexOf(place) >= 0) parts.pl = 3.6;                  // 1. le lieu
       const ms = monthsOf(d.when), inS = ms.filter(m => SEASON_M[season] && SEASON_M[season].indexOf(m) >= 0).length / Math.max(1, ms.length);
-      sc += inS * 7 + (ms.length >= 11 ? 2.2 : 0);                                              // 2. la saison (meilleurs mois)
-      sc += d.tags.reduce((x, t) => x + (tags[t] || 0) / tmax, 0) / d.tags.length * 3.4;         // 3. les ambiances
-      if (dir && d.tags.indexOf(dir) >= 0) sc += 1.6;                                           //    l'histoire
-      let fs = 0;                                                                               // 4. les senteurs (plafonnées)
+      parts.se = inS * 7 + (ms.length >= 11 ? 2.2 : 0);                                                  // 2. la saison
+      parts.am = d.tags.reduce((x, t) => x + (tags[t] || 0) / tmax, 0) / d.tags.length * 3.4 + (dir && d.tags.indexOf(dir) >= 0 ? 1.6 : 0);   // 3. ambiances + histoire
+      if (det && det.ids.indexOf(d.id) >= 0) parts.de = 3.2;                                              // 4. la précision adaptative
+      let fs = 0;                                                                                        // 5. les senteurs (plafonnées)
       d.fams.forEach((f, i) => { fs += [3, 2, 1][i] * (fams[f] || 0) * .3; if (avoid.has(f)) fs -= [3, 2, 1][i] * .9; });
-      sc += clamp(fs, -3, 3.5);
-      sc += rnd() * 2.4;                                   // léger aléa : plusieurs destinations proches restent possibles
-      return { d, sc };
+      parts.fa = clamp(fs, -3, 3.5);
+      parts.ex = -(d.notes.filter(id => EX.has(id)).length / d.notes.length) * 5;                         // 6. allergies et senteurs écartées
+      const sc = parts.pl + parts.se + parts.am + parts.de + parts.fa + parts.ex + rnd() * 2.4;           // léger aléa
+      return { d, sc, parts };
     }).sort((x, y) => y.sc - x.sc);
     const top = Math.max(1, list[0].sc);
     const fav = Object.keys(fams).filter(f => fams[f] >= .6 && !avoid.has(f));
     return list.slice(0, 8).map((x, i) => ({
-      d: x.d,
-      hits: x.d.notes.filter(id => fav.indexOf(VS.NOTES[id].f) >= 0 && !(VS.EXCL && VS.EXCL.has(id))),
+      d: x.d, parts: x.parts,
+      hits: x.d.notes.filter(id => fav.indexOf(VS.NOTES[id].f) >= 0 && !EX.has(id)),
       aff: clamp(Math.round(80 + (x.sc / top) * 15 - i * 1.5), 76, 98)
     }));
+  }
+
+  // « un cran sous la première » : ce qui la sépare de la destination qu'on regarde
+  function whyNot(a, b, ans) {
+    const lab = t => ((VS.MOODS.find(m => m[0] === t) || VS.DIRECTIONS.find(m => m[0] === t) || [0, t])[1]).toLowerCase();
+    const short = id => (opt('place', id) || {}).short || id;
+    let k = null, g = .7;
+    Object.keys(a.parts).forEach(key => { const diff = a.parts[key] - b.parts[key]; if (diff > g) { g = diff; k = key; } });
+    const det = detailOf(ans);
+    const T = {
+      pl: `son décor est plutôt « ${short((VS.DEST_PLACE[b.d.id] || [])[0])} » que « ${short(ans.place)} »`,
+      se: `sa meilleure période (${b.d.when.toLowerCase()}) tombe moins dans ta saison`,
+      am: `son ambiance (${b.d.tags.slice(0, 3).map(lab).join(', ')}) rejoint un peu moins tes envies`,
+      de: `elle répond moins à ton envie « ${det ? det.label.toLowerCase() : 'de précision'} »`,
+      fa: 'ses senteurs dominantes recoupent moins tes matières préférées',
+      ex: 'plusieurs de ses senteurs sont écartées par tes préférences'
+    };
+    return k ? `Un cran sous ${a.d.n} : ${T[k]}.` : `Presque à égalité avec ${a.d.n} : seul un détail les sépare.`;
   }
 
   // le parfum de la destination : le lieu préfait qui lui est rattaché, sinon le plus proche par les senteurs
@@ -184,5 +248,5 @@
   }
 
   VS.QUIZ = QUIZ;
-  VS.Quiz = { params, summary, chosen, rank, sceneFor, profileText, monthsOf };
+  VS.Quiz = { params, summary, chosen, rank, sceneFor, profileText, monthsOf, questions, detailOf, whyNot, DETAIL };
 })(typeof window !== 'undefined' ? window : globalThis);
