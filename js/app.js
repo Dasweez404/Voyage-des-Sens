@@ -1,7 +1,7 @@
 /* Voyage des Sens — interface */
 (function () {
   'use strict';
-  const BUILD = '2611121033';
+  const BUILD = '2611121045';
   // page et scripts de versions différentes (cache) : on repart d'un état propre, une seule fois
   (function guard() {
     const meta = document.querySelector('meta[name="vs-build"]');
@@ -608,20 +608,29 @@
     const hitNames = x.hits.map(id => NOTES[id].n.toLowerCase());
     const famNames = d.fams.filter(f => comp.families.some(c => c.f === f)).map(f => FAM[f].n.toLowerCase());
     const amb = lst(d.tags.slice(0, 3).map(tagLabel));
-    const why = hitNames.length
+    const quiz = !!comp.quiz;
+    const why = quiz
+      ? `Tu cherchais ${comp.text}. ${hitNames.length ? 'Tu y retrouveras ' + lst(hitNames) + ', des senteurs qui te correspondent.' : 'Son ambiance ' + amb + ' est celle de tes réponses.'}`
+      : hitNames.length
       ? `Ta formule contient ${lst(hitNames)} : des senteurs qu'on respire partout à ${d.n}. Son accord ${comp.accord.toLowerCase()} rejoint l'ambiance ${amb} du lieu.`
       : famNames.length
         ? `Ton accord ${comp.accord.toLowerCase()} retrouve à ${d.n} les notes ${lst(famNames)} qui dominent l'air du lieu, dans une ambiance ${amb}.`
         : `L'ambiance ${amb} de ${d.n} est celle que ton parfum dessine.`;
-    const chips = d.notes.map(id => `<span class="${comp.ids.includes(id) ? 'on' : ''}">${NOTES[id].e} ${NOTES[id].n}</span>`).join('');
+    const chips = d.notes.map(id => `<span class="${(quiz ? x.hits : comp.ids).includes(id) ? 'on' : ''}">${NOTES[id].e} ${NOTES[id].n}</span>`).join('');
     const others = list.map((o, i) => [o, i]).filter(([, i]) => i !== idx).slice(0, 4);
     return `<div class="res-left"><div class="res-hero"><div class="art-bg" id="destArt">${Art.scene(spec)}</div><div class="res-top"><button class="round" id="dBack" aria-label="Retour">←</button><span></span></div><div class="waves"><svg viewBox="0 0 400 70" preserveAspectRatio="none"><path class="w1" d="M-40,30 C40,0 120,60 220,28 S360,6 440,30 V70 H-40Z"/><path class="w2" d="M-40,50 C60,24 150,72 250,46 S380,32 440,50 V70 H-40Z"/></svg></div></div>` +
-      `<div class="res-title" style="padding-top:8px"><div class="badge">Ta destination · ${d.c}</div><h1>${d.n}</h1><p class="tg">${d.tag}</p><span class="accord">${x.aff} % d'affinité olfactive</span></div>` +
+      `<div class="res-title" style="padding-top:8px"><div class="badge">Ta destination · ${d.c}</div><h1>${d.n}</h1><p class="tg">${d.tag}</p><span class="accord">${x.aff} % d'affinité ${quiz ? 'avec tes réponses' : 'olfactive'}</span></div>` +
       `</div><div class="res-right"><section class="sec rv"><h2>Pourquoi ici</h2><div class="story"><p>${d.txt} ${why}</p></div></section>` +
-      `<section class="sec rv"><h2>Ce que tu y respireras</h2><p class="sub">Les notes en couleur sont déjà dans ta formule.</p><div class="dn">${chips}</div></section>` +
+      `<section class="sec rv"><h2>Ce que tu y respireras</h2><p class="sub">${quiz ? 'Les notes en couleur correspondent à ton profil.' : 'Les notes en couleur sont déjà dans ta formule.'}</p><div class="dn">${chips}</div></section>` +
       `<section class="sec rv"><h2>Bon à savoir</h2><div class="sig2" style="margin-top:0"><div class="box"><h4>Quand partir</h4><div class="moment" style="font-size:19px">${d.when}</div></div><div class="box"><h4>Durée idéale</h4><div class="moment" style="font-size:19px">${d.dur}</div></div></div><div class="box" style="margin-top:12px"><h4>Ambiance</h4><div class="tags" style="margin-top:0">${d.tags.map(t => `<span>${tagLabel(t)}</span>`).join('')}</div></div></section>` +
       `<section class="sec"><h2 class="rv">Ton itinéraire olfactif</h2><p class="sub rv">Trois moments à respirer.</p><div class="stops rv">${d.stops.map((s, i) => `<div class="stop" style="--d:${(.2 + i * .25).toFixed(2)}s"><b>${s.t}</b><span>${s.o}</span></div>`).join('')}</div></section>` +
+      (quiz ? scentCard(d) : '') +
       `<section class="sec rv"><h2>Autres idées de voyage</h2><div class="rel">${others.map(([o, i]) => `<button class="hcard" data-di="${i}"><div class="pic"><div class="art-w" data-art="${o.d.art}"></div></div><b>${o.d.n}</b><small>${o.d.c} · ${o.aff} %</small></button>`).join('')}</div></section></div>`;
+  }
+  // le parfum de la destination (lieu préfait rattaché ou le plus proche)
+  function scentCard(d) {
+    const sc = VS.Quiz.sceneFor(d); if (!sc) return '';
+    return `<section class="sec rv"><h2>Le parfum de ta destination</h2><button class="scent-card" data-scene="${sc.id}"><div class="pic"><div class="art-w" data-art="${sc.id}"></div><span class="em">${sc.e}</span></div><div class="sc-t"><b>${sc.n}</b><span>${sc.tag}</span><em>${sc.notes.slice(0, 6).map(id => NOTES[id].e).join(' ')}</em></div><span class="btn primary">Le sentir</span></button></section>`;
   }
   function swapDest(sc) { vibrate(10); sc.classList.add('swap'); setTimeout(() => { renderDest(true); sc.classList.remove('swap'); }, 380); }
   function renderDest(reveal) {
@@ -638,9 +647,10 @@
     $('#dBack').onclick = () => closeDest();
     $('#dNext').onclick = () => { destIdx = (destIdx + 1) % Math.min(4, destList.length); swapDest(sc); };
     $$('[data-di]', sc).forEach(b => b.addEventListener('click', () => { destIdx = +b.dataset.di; swapDest(sc); }));
+    $$('[data-scene]', sc).forEach(b => b.addEventListener('click', () => { const id = b.dataset.scene; closeDest(); setTimeout(() => openScene(id), 420); }));
   }
-  function openDest(comp) {
-    destComp = comp; destList = E.destinations(comp); destIdx = 0;
+  function openDest(comp, list) {
+    destComp = comp; destList = list || E.destinations(comp); destIdx = 0;
     const w = $('#dest'); w.hidden = false; w.setAttribute('aria-hidden', 'false');
     renderDest(true); void w.offsetWidth; w.classList.add('show'); vibrate([10, 30, 10]);
     if (!destOpen) { try { history.pushState({ d: 1 }, ''); } catch (e) { /* ignore */ } destOpen = true; }
@@ -655,22 +665,23 @@
   /* ---------- quiz : 8 questions, un parfum sur mesure ---------- */
   const QZ = { i: -1, ans: {}, busy: false, back: false };
   const QCOL = ['#e6b67f', '#adb78f', '#efcbbb', '#d9a18d', '#d3a2b5', '#9fc4cf', '#e0c46f', '#b9a1d6'];
-  function quizCompose(ans) {
-    const p = VS.Quiz.params(ans), seed = Math.floor(Math.random() * 1e9);
-    const opts = Object.assign({}, p.opts, { seed, nameFn: p.nameFn, tag: p.tag, extra: p.extra });
-    const c = E.compose(opts);
-    const sp = Art.customSpec(c, p.opts.dirs[0], seed % 9999);      // palette tirée des senteurs, décor tiré des réponses
-    sp.id = 'q' + seed; sp.art = p.art; sp.n = c.name;
-    c.spec = sp; opts.spec = sp; c.opts = opts;
-    return c;
+  // le quiz aboutit à une destination : classement des 111 destinations d'après les réponses
+  function quizDestination(ans) {
+    const list = VS.Quiz.rank(ans);
+    openDest({ quiz: true, ans, text: VS.Quiz.profileText(ans), ids: [], families: [], accord: '' }, list);
+  }
+  function quizWait(ans) {
+    $('#quizBox').innerHTML = `<div class="qz-body"><div class="qz-wait"><div class="qz-orb" aria-hidden="true"><i></i><i></i><i></i><i></i></div><h2>Ta destination se dessine…</h2><p>${VS.Quiz.profileText(ans)}</p></div></div>`;
+    QZ.busy = true;
+    setTimeout(() => { QZ.i = -1; QZ.ans = {}; renderQuiz(); quizDestination(ans); }, reduce ? 300 : 2600);
   }
   function quizIntro() {
     const last = store.get('vs.quiz', null);
-    return `<div class="qz-body${QZ.back ? ' back' : ''}"><header class="page-h"><h2>Le quiz olfactif</h2><p>Huit questions, une minute : on compose pour toi un parfum sur mesure, avec sa formule, son histoire et sa destination.</p></header>` +
+    return `<div class="qz-body${QZ.back ? ' back' : ''}"><header class="page-h"><h2>Le quiz olfactif</h2><p>Huit questions, une minute : on te trouve la destination qui te ressemble, avec son itinéraire olfactif et le parfum qui l\'accompagne.</p></header>` +
       `<div class="qz-intro"><div class="qz-orb" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` +
-      `<ul class="qz-points"><li><b>8</b> questions courtes</li><li><b>1</b> minute</li><li><b>∞</b> parfums possibles</li></ul>` +
+      `<ul class="qz-points"><li><b>8</b> questions courtes</li><li><b>1</b> minute</li><li><b>111</b> destinations</li></ul>` +
       `<button class="btn primary big" data-q="start">Commencer le quiz</button></div>` +
-      (last ? `<div class="qz-last"><div><small>Ton dernier profil</small><b>${VS.Quiz.summary(last) || 'Profil enregistré'}</b></div><div class="qz-last-b"><button class="btn soft" data-q="again">Nouvelle version</button></div></div>` : '') + `</div>`;
+      (last ? `<div class="qz-last"><div><small>Ton dernier profil</small><b>${VS.Quiz.summary(last) || 'Profil enregistré'}</b></div><div class="qz-last-b"><button class="btn soft" data-q="again">Revoir ma destination</button><button class="btn soft" data-q="start">Refaire</button></div></div>` : '') + `</div>`;
   }
   function quizQuestion() {
     const q = VS.QUIZ[QZ.i], n = VS.QUIZ.length, sel = [].concat(QZ.ans[q.id] || []);
@@ -694,15 +705,15 @@
   }
   function quizNext() {
     if (QZ.i >= VS.QUIZ.length - 1) {
-      const ans = QZ.ans; store.set('vs.quiz', ans);
-      const comp = quizCompose(ans); QZ.i = -1; QZ.ans = {}; renderQuiz(); run(comp);
+      const ans = QZ.ans; store.set('vs.quiz', ans); vibrate([10, 30, 10]);
+      quizWait(ans);
     } else { QZ.i++; quizSwap(false); }
   }
   $('#quizBox').addEventListener('click', e => {
     if (QZ.busy) return;
     const t = e.target.closest('[data-q],[data-o]'); if (!t) return;
     if (t.dataset.q === 'start') { QZ.i = 0; QZ.ans = {}; vibrate(10); quizSwap(false); return; }
-    if (t.dataset.q === 'again') { vibrate(10); const a = store.get('vs.quiz', null); if (a) run(quizCompose(a)); return; }
+    if (t.dataset.q === 'again') { vibrate(10); const a = store.get('vs.quiz', null); if (a) quizWait(a); return; }
     if (t.dataset.q === 'prev') { vibrate(6); QZ.i--; quizSwap(true); return; }
     if (t.dataset.q === 'next') { vibrate(10); quizNext(); return; }
     const o = t.dataset.o; if (!o) return;

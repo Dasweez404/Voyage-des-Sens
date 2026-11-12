@@ -116,6 +116,73 @@
     return ['time', 'place', 'season'].map(q => (chosen(ans, q)[0] || {}).short).filter(Boolean).join(' · ');
   }
 
+  /* ---------- choix de la destination ---------- */
+  const MONTH_RX = /janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre/g;
+  const MONTH_IDX = { janvier: 0, fevrier: 1, février: 1, mars: 2, avril: 3, mai: 4, juin: 5, juillet: 6, aout: 7, août: 7, septembre: 8, octobre: 9, novembre: 10, decembre: 11, décembre: 11 };
+  const SEASON_M = { printemps: [2, 3, 4], ete: [5, 6, 7], automne: [8, 9, 10], hiver: [11, 0, 1] };
+  function monthsOf(when) {
+    const w = when.toLowerCase();
+    if (w.indexOf('toute l\'année') >= 0) return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    const f = (w.match(MONTH_RX) || []).map(m => MONTH_IDX[m]);
+    if (f.length < 2) return f;
+    if (w.indexOf(' ou ') >= 0) return f;
+    const out = []; let m = f[0];
+    for (let k = 0; k < 12; k++) { out.push(m); if (m === f[1]) break; m = (m + 1) % 12; }
+    return out;
+  }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  // classe toutes les destinations pour un profil de réponses : retourne [{ d, hits, aff }]
+  function rank(ans, seed) {
+    const p = params(ans), o = p.opts;
+    const tags = o.tags, fams = o.fams, avoid = new Set(o.avoid), dir = (o.dirs || [])[0];
+    const place = ans.place, season = ans.season;
+    const tmax = Math.max(1, ...Object.keys(tags).map(k => tags[k]));
+    let a = (seed == null ? Math.floor(Math.random() * 1e9) : seed) >>> 0;
+    const rnd = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    const list = VS.DESTS.map(d => {
+      let sc = 0;
+      const pl = VS.DEST_PLACE[d.id] || [];
+      if (pl[0] === place) sc += 6; else if (pl.indexOf(place) >= 0) sc += 3.6;                 // 1. le lieu
+      const ms = monthsOf(d.when), inS = ms.filter(m => SEASON_M[season] && SEASON_M[season].indexOf(m) >= 0).length / Math.max(1, ms.length);
+      sc += inS * 7 + (ms.length >= 11 ? 2.2 : 0);                                              // 2. la saison (meilleurs mois)
+      sc += d.tags.reduce((x, t) => x + (tags[t] || 0) / tmax, 0) / d.tags.length * 3.4;         // 3. les ambiances
+      if (dir && d.tags.indexOf(dir) >= 0) sc += 1.6;                                           //    l'histoire
+      let fs = 0;                                                                               // 4. les senteurs (plafonnées)
+      d.fams.forEach((f, i) => { fs += [3, 2, 1][i] * (fams[f] || 0) * .3; if (avoid.has(f)) fs -= [3, 2, 1][i] * .9; });
+      sc += clamp(fs, -3, 3.5);
+      sc += rnd() * 2.4;                                   // léger aléa : plusieurs destinations proches restent possibles
+      return { d, sc };
+    }).sort((x, y) => y.sc - x.sc);
+    const top = Math.max(1, list[0].sc);
+    const fav = Object.keys(fams).filter(f => fams[f] >= .6 && !avoid.has(f));
+    return list.slice(0, 8).map((x, i) => ({
+      d: x.d,
+      hits: x.d.notes.filter(id => fav.indexOf(VS.NOTES[id].f) >= 0 && !(VS.EXCL && VS.EXCL.has(id))),
+      aff: clamp(Math.round(80 + (x.sc / top) * 15 - i * 1.5), 76, 98)
+    }));
+  }
+
+  // le parfum de la destination : le lieu préfait qui lui est rattaché, sinon le plus proche par les senteurs
+  function sceneFor(d) {
+    const direct = VS.SCENES.filter(sc => VS.SCENE_DEST[sc.id] === d.id);
+    if (direct.length) return direct[0];
+    let best = null, bs = -1;
+    VS.SCENES.forEach(sc => {
+      const fam = {}; sc.notes.forEach(id => { const f = VS.NOTES[id].f; fam[f] = (fam[f] || 0) + 1; });
+      const score = d.notes.filter(id => sc.notes.indexOf(id) >= 0).length * 4 + d.fams.reduce((x, f, i) => x + [3, 2, 1][i] * (fam[f] || 0), 0);
+      if (score > bs) { bs = score; best = sc; }
+    });
+    return best;
+  }
+
+  // « un crépuscule sous les arbres, dans la lumière de l'automne »
+  function profileText(ans) {
+    const time = ans.time || 'midi', place = ans.place || 'jardin', season = ans.season || 'ete';
+    const T = { aube: 'une aube', midi: 'un plein midi', crepuscule: 'un crépuscule', nuit: 'une nuit' };
+    return `${T[time]} ${PLACE_OF[place]}, ${SEASON_OF[season]}`;
+  }
+
   VS.QUIZ = QUIZ;
-  VS.Quiz = { params, summary, chosen };
+  VS.Quiz = { params, summary, chosen, rank, sceneFor, profileText, monthsOf };
 })(typeof window !== 'undefined' ? window : globalThis);

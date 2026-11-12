@@ -31,10 +31,10 @@ Sur téléphone : « Ajouter à l'écran d'accueil » pour l'installer (le servi
   fête foraine, cirque, ferme…), Voyage (marché oriental, volcan, jungle, pizzeria new-yorkaise…) et Souvenirs.
 - **549 senteurs** réparties en 18 familles (hespéridés, floraux, boisés, gourmands, marins, minéraux, boissons & sirops, confiseries…) : cola, grenadine, chips paprika, pop-corn, barbe à papa, violette, caramel, cuir….
 - **Sous-catégories** pour filtrer les lieux : 4 ou 5 par catégorie (Cocon & chaleur, Mers & îles, Goûters & douceurs…).
-- **Quiz olfactif** (onglet sous Créer) : 8 questions (moment, lieu, saison, envies, histoire, gourmandise, matières, présence). Le moteur compose une formule neuve, jamais copiée d'un lieu préfait, avec un nom, une phrase, un décor et une destination qui reflètent les réponses.
+- **Quiz olfactif** (onglet sous Créer) : 8 questions (moment, lieu, saison, envies, histoire, gourmandise, matières, présence). Il aboutit à **une destination** choisie parmi les 111 (classement selon le type de lieu, la saison, l'ambiance, l'histoire et les matières), avec son itinéraire olfactif, les notes qui correspondent au profil, « Autre destination » (4 meilleures) et le parfum préfait qui l'accompagne (« Le sentir »).
 - **Création sur mesure** : texte libre, directions (nostalgie, découverte, voyage, exotisme), 18 ambiances,
   senteurs au choix, richesse de la formule.
-- **70 destinations réelles** (Chamonix, Marrakech, Kyoto, Bora Bora, La Havane…) : chaque parfum reçoit la destination dont l'air lui ressemble le plus, avec un bouton « Découvrir ma destination » (affinité olfactive, itinéraire en trois moments, période, carte) et un bouton « Autre destination ».
+- **111 destinations réelles** (Chamonix, Marrakech, Kyoto, Bora Bora, La Havane…) : chaque parfum reçoit la destination dont l'air lui ressemble le plus, avec un bouton « Découvrir ma destination » (affinité olfactive, itinéraire en trois moments, période, carte) et un bouton « Autre destination ».
 - **Préférences** : 16 groupes d'allergies et d'intolérances (agrumes, fruits à coque, lait, gluten, alcools…), familles entières ou senteurs précises à éviter. Ces senteurs n'apparaissent ni dans le sélecteur ni dans les formules ; les lieux préfaits sont adaptés en remplaçant chaque note écartée par la plus proche.
 - Collection locale, variation d'un parfum, partage de la formule.
 
@@ -59,7 +59,7 @@ node tools/audit.js scenes # relecture de toutes les formules
 | `js/notes.js` | familles, ambiances, règles d'accords, 549 notes |
 | `js/scenes.js` | 111 lieux (palette, illustration, notes) |
 | `js/prefs.js` | groupes d'allergies et d'intolérances |
-| `js/destinations.js` | 70 destinations, étapes olfactives, lieu → destination |
+| `js/destinations.js` | 111 destinations, étapes olfactives, lieu → destination |
 | `js/art.js` | moteur d'illustrations SVG animées + flacon (aucune image externe) |
 | `js/quiz.js` | questions du quiz et traduction des réponses en paramètres |
 | `js/engine.js` | composition, statistiques, histoire, analyse du texte libre |

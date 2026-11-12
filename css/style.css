@@ -511,6 +511,22 @@ html.desktop .quiz-cta{padding:22px 26px}
 html.desktop #tabbar button{font-size:15px}
 @media (hover:hover) and (pointer:fine){.qo:hover{transform:translateY(-4px)}.qo:active{transform:scale(.97)}}
 
+.qz-wait{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:6vh 10px}
+.qz-wait .qz-orb{width:190px;height:190px}
+.qz-wait .qz-orb i{animation-duration:3.2s!important}
+.qz-wait h2{font-family:var(--serif);font-size:clamp(28px,4.6vw,40px);line-height:1.08;animation:up 1s var(--calm) .2s both}
+.qz-wait p{color:var(--ink2);max-width:34ch;line-height:1.5;animation:up 1s var(--calm) .5s both}
+.qz-last-b{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.scent-card{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;width:100%;text-align:left;padding:10px;border-radius:var(--r);background:var(--paper);position:relative;overflow:hidden;transition:transform .5s var(--spring)}
+.scent-card:active{transform:scale(.98)}
+.scent-card .pic{aspect-ratio:3/4}
+.sc-t b{display:block;font-family:var(--serif);font-size:19px;line-height:1.15}
+.sc-t span{display:block;margin:5px 0;color:var(--mut);font-size:12.5px;line-height:1.4}
+.sc-t em{font-style:normal;font-size:14px;letter-spacing:2px}
+.scent-card>.btn{grid-column:1 / -1;min-height:46px;font-size:14.5px}
+html.desktop .scent-card{grid-template-columns:120px 1fr auto}
+html.desktop .scent-card>.btn{grid-column:auto}
+
 /* ---------- destination ---------- */
 .top-actions{display:flex;gap:8px}
 .pill{pointer-events:auto;height:44px;padding:0 16px;border-radius:999px;background:var(--paper);color:var(--ink);font-weight:700;font-size:13.5px;box-shadow:0 4px 0 var(--paper2);transition:transform .25s var(--spring)}

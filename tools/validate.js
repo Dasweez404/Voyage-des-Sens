@@ -86,6 +86,8 @@ VS.DESTS.forEach(d => {
   if (!sc.has(d.art)) { console.log('dest art inconnu', d.id, d.art); bad++; }
   if (d.stops.length !== 3 || d.stops.some(x => !x.o)) { console.log('dest étapes', d.id); bad++; }
 });
+VS.DESTS.forEach(d => { if (!VS.DEST_PLACE[d.id] || !VS.DEST_PLACE[d.id].length) { console.log('destination sans type de lieu', d.id); bad++; } });
+Object.keys(VS.DEST_PLACE).forEach(id => { if (!VS.DESTS.some(d => d.id === id)) { console.log('type de lieu : destination inconnue', id); bad++; } });
 const dids = new Set(VS.DESTS.map(d => d.id));
 if (dids.size !== VS.DESTS.length) { console.log('dest id dupliqué'); bad++; }
 Object.keys(VS.SCENE_DEST).forEach(k => { if (!sc.has(k)) { console.log('SCENE_DEST scène inconnue', k); bad++; } if (!dids.has(VS.SCENE_DEST[k])) { console.log('SCENE_DEST dest inconnue', k, VS.SCENE_DEST[k]); bad++; } });
